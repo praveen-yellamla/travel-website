@@ -3,8 +3,8 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>VOYARA — Premium Curated Journeys</title>
-  <meta name="description" content="VOYARA — Luxury domestic and international tours, curated journeys, and premium travel planning across India and beyond.">
+  <title>ASV TOURS — Premium Curated Journeys</title>
+  <meta name="description" content="ASV TOURS — Luxury domestic and international tours, curated journeys, and premium travel planning across India and beyond.">
   <link rel="icon" type="image/svg+xml" href="assets/favicon.svg">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -13,16 +13,14 @@
 </head>
 <body>
 
+  <!-- Main Site (shown when no journey detail route) -->
+  <div id="mainSite">
+
   <!-- ═══════════════════════════════ HEADER ═══════════════════════════════ -->
   <header class="header" id="header">
     <div class="container header-inner">
       <a href="#" class="header-brand">
-        <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
-          <circle cx="16" cy="16" r="14" stroke="currentColor" stroke-width="1.5"/>
-          <path d="M10 22 L16 8 L22 22 M12.5 17 h7" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-          <circle cx="16" cy="7" r="1.5" fill="currentColor"/>
-        </svg>
-        <span class="header-brand-text">VOYARA</span>
+        <img src="assets/asv-tours-logo.png" alt="ASV TOURS" class="header-logo">
       </a>
       <nav class="header-nav">
         <a href="#destinations">Destinations</a>
@@ -197,7 +195,7 @@
       </div>
       <div class="testi-grid">
         <div>
-          <p class="testi-quote" id="testiQuote">We've travelled with a few agents over the years. None of them came close to what VOYARA put together for our anniversary in Kashmir. Every detail — down to the shikara breakfast — felt thought through.</p>
+          <p class="testi-quote" id="testiQuote">We've travelled with a few agents over the years. None of them came close to what ASV TOURS put together for our anniversary in Kashmir. Every detail — down to the shikara breakfast — felt thought through.</p>
           <div class="testi-meta">
             <div class="testi-avatar" id="testiAvatar">A</div>
             <div>
@@ -326,7 +324,7 @@
         <div class="form-footer">
           <label class="form-check">
             <input type="checkbox" checked>
-            Send me VOYARA dispatches (4× a year, no spam)
+            Send me ASV TOURS dispatches (4× a year, no spam)
           </label>
           <button type="submit" class="submit-btn" id="submitBtn">
             <span>Send Inquiry</span>
@@ -342,7 +340,7 @@
     <div class="container">
       <div class="footer-grid">
         <div>
-          <div class="footer-brand-name">VOYARA</div>
+          <img src="assets/asv-tours-logo.png" alt="ASV TOURS" class="footer-logo">
           <p class="footer-brand-desc">Thoughtfully curated journeys for travelers who'd rather remember a meal than a checklist. Designing trips since 2026.</p>
           <div class="footer-social">
             <a href="#" aria-label="Instagram"><svg width="16" height="16" viewBox="0 0 24 24" fill="none"><rect x="3" y="3" width="18" height="18" rx="5" stroke="currentColor" stroke-width="1.5"/><circle cx="12" cy="12" r="4" stroke="currentColor" stroke-width="1.5"/><circle cx="17.5" cy="6.5" r="1" fill="currentColor"/></svg></a>
@@ -383,11 +381,15 @@
         </div>
       </div>
       <div class="footer-bottom">
-        <div>© 2026 VOYARA — All rights reserved.</div>
+        <div>© 2026 ASV TOURS — All rights reserved.</div>
         <div class="mono">CIN · U00000XX2026PTC000000 · PAN · AAAAA0000A</div>
       </div>
     </div>
   </footer>
+  </div><!-- /mainSite -->
+
+  <!-- Journey Detail Page (rendered by JS) -->
+  <div id="journeyDetailPage" style="display:none;"></div>
 
   <script src="script.js"></script>
 </body>
