@@ -1,90 +1,200 @@
 /**
  * ASV TOURS — Netlify Function (single catch-all API)
  *
- * Handles all /api/* routes using /tmp file storage.
- * Replaces the Express+SQLite backend for Netlify serverless deployment.
+ * Handles all /api/* routes using Turso (libSQL) for persistent storage.
+ * Replaces the previous /tmp file-based storage.
  *
- * Storage: /tmp/asvtours-data.json (persists within warm function instances)
- * On cold start: re-seeds from bundled seed-data.js if file doesn't exist.
- *
- * Routes are matched by parsing event.path after the redirect from /api/* → /.netlify/functions/api/*
+ * Environment variables required:
+ *   TURSO_DATABASE_URL  — Turso database URL
+ *   TURSO_AUTH_TOKEN    — Turso authentication token
+ *   JWT_SECRET          — Secret for JWT signing (optional, has fallback)
  */
-const fs = require("fs");
-const path = require("path");
+const { createClient } = require("@libsql/client");
 const jwt = require("jsonwebtoken");
 const bcrypt = require("bcryptjs");
 const { USERS, SETTINGS, DESTINATIONS, PACKAGES, OFFERS } = require("./seed-data");
 
 const JWT_SECRET = process.env.JWT_SECRET || "asvtours-fallback-secret-change-me";
-const DB_PATH = path.join("/tmp", "asvtours-data.json");
 
 // ═══════════════════════════════════════════════════════════════
-// FILE-BASED STORAGE
+// TURSO DATABASE CONNECTION
 // ═══════════════════════════════════════════════════════════════
-let _cache = null;
+let _db = null;
 
-function loadDB() {
-  if (_cache) return _cache;
-  try {
-    if (fs.existsSync(DB_PATH)) {
-      const raw = fs.readFileSync(DB_PATH, "utf8");
-      _cache = JSON.parse(raw);
-      return _cache;
-    }
-  } catch (e) {
-    console.error("Failed to load DB from disk:", e.message);
+function getDb() {
+  if (_db) return _db;
+  _db = createClient({
+    url: process.env.TURSO_DATABASE_URL,
+    authToken: process.env.TURSO_AUTH_TOKEN,
+  });
+  return _db;
+}
+
+// ═══════════════════════════════════════════════════════════════
+// SCHEMA + SEED
+// ═══════════════════════════════════════════════════════════════
+let _initialized = false;
+
+async function initialize() {
+  if (_initialized) return;
+  const db = getDb();
+
+  // Create tables
+  await db.executeMultiple(`
+    CREATE TABLE IF NOT EXISTS users (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      name TEXT NOT NULL,
+      email TEXT UNIQUE NOT NULL,
+      password TEXT NOT NULL,
+      role TEXT DEFAULT 'admin',
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    );
+
+    CREATE TABLE IF NOT EXISTS settings (
+      key TEXT PRIMARY KEY,
+      value TEXT
+    );
+
+    CREATE TABLE IF NOT EXISTS destinations (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      name TEXT NOT NULL,
+      slug TEXT UNIQUE NOT NULL,
+      category TEXT NOT NULL,
+      country TEXT DEFAULT '',
+      image_url TEXT DEFAULT '',
+      short_desc TEXT DEFAULT '',
+      price INTEGER DEFAULT 0,
+      offer_price INTEGER,
+      duration TEXT DEFAULT '',
+      is_active INTEGER DEFAULT 1,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    );
+
+    CREATE TABLE IF NOT EXISTS packages (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      name TEXT NOT NULL,
+      slug TEXT UNIQUE NOT NULL,
+      category TEXT NOT NULL,
+      title TEXT DEFAULT '',
+      country TEXT DEFAULT '',
+      "where" TEXT DEFAULT '',
+      image_url TEXT DEFAULT '',
+      duration TEXT DEFAULT '',
+      duration_nights INTEGER DEFAULT 0,
+      group_size TEXT DEFAULT 'Max 8',
+      difficulty TEXT DEFAULT 'Easy',
+      best_season TEXT DEFAULT '',
+      starting_location TEXT DEFAULT '',
+      price INTEGER DEFAULT 0,
+      offer_price INTEGER,
+      short_desc TEXT DEFAULT '',
+      intro TEXT DEFAULT '',
+      about TEXT DEFAULT '[]',
+      highlights TEXT DEFAULT '[]',
+      itinerary TEXT DEFAULT '[]',
+      accommodation TEXT DEFAULT '[]',
+      included TEXT DEFAULT '[]',
+      not_included TEXT DEFAULT '[]',
+      is_active INTEGER DEFAULT 1,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    );
+
+    CREATE TABLE IF NOT EXISTS offers (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      title TEXT NOT NULL,
+      package_id INTEGER,
+      original_price INTEGER,
+      offer_price INTEGER NOT NULL,
+      offer_text TEXT DEFAULT '',
+      start_date TEXT,
+      end_date TEXT,
+      is_active INTEGER DEFAULT 1,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    );
+
+    CREATE TABLE IF NOT EXISTS enquiries (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      full_name TEXT NOT NULL,
+      phone TEXT DEFAULT '',
+      email TEXT DEFAULT '',
+      destination TEXT DEFAULT '',
+      category TEXT DEFAULT '',
+      travel_date TEXT DEFAULT '',
+      travellers TEXT DEFAULT '1',
+      trip_type TEXT DEFAULT '',
+      budget TEXT DEFAULT '',
+      message TEXT DEFAULT '',
+      status TEXT DEFAULT 'new',
+      notes TEXT DEFAULT '',
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    );
+  `);
+
+  // Seed data if tables are empty
+  const pkgCount = await db.execute("SELECT COUNT(*) as cnt FROM packages");
+  if (pkgCount.rows[0].cnt === 0) {
+    console.log("[API] Seeding Turso database...");
+    await seedDatabase(db);
+    console.log("[API] Seeding complete.");
   }
-  return null;
+
+  _initialized = true;
 }
 
-function saveDB(data) {
-  _cache = data;
-  try {
-    fs.writeFileSync(DB_PATH, JSON.stringify(data), "utf8");
-  } catch (e) {
-    console.error("Failed to save DB to disk:", e.message);
+async function seedDatabase(db) {
+  // Seed users
+  for (const u of USERS) {
+    await db.execute({
+      sql: "INSERT OR IGNORE INTO users (id, name, email, password, role) VALUES (?, ?, ?, ?, ?)",
+      args: [u.id, u.name, u.email, u.password, u.role],
+    });
   }
-}
 
-function getAll(key) {
-  const db = loadDB();
-  return db ? (db[key] || []) : [];
-}
+  // Seed settings
+  for (const [k, v] of Object.entries(SETTINGS)) {
+    await db.execute({
+      sql: "INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)",
+      args: [k, v],
+    });
+  }
 
-function getObj(key) {
-  const db = loadDB();
-  return db ? (db[key] || {}) : {};
-}
+  // Seed destinations
+  for (const d of DESTINATIONS) {
+    await db.execute({
+      sql: `INSERT OR IGNORE INTO destinations (id, name, slug, category, country, image_url, short_desc, price, duration, is_active)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      args: [d.id, d.name, d.slug, d.category, d.country, d.image_url, d.short_desc, d.price, d.duration, d.is_active],
+    });
+  }
 
-function setAll(key, items) {
-  const db = loadDB() || {};
-  db[key] = items;
-  saveDB(db);
-}
+  // Seed packages (JSON fields stored as TEXT)
+  for (const p of PACKAGES) {
+    await db.execute({
+      sql: `INSERT OR IGNORE INTO packages (id, name, slug, category, title, country, "where", image_url, duration, duration_nights, group_size, difficulty, best_season, starting_location, price, offer_price, short_desc, intro, about, highlights, itinerary, accommodation, included, not_included, is_active)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      args: [
+        p.id, p.name, p.slug, p.category, p.title, p.country, p.where,
+        p.image_url, p.duration, p.duration_nights, p.group_size, p.difficulty,
+        p.best_season, p.starting_location, p.price, p.offer_price, p.short_desc,
+        p.intro, JSON.stringify(p.about), JSON.stringify(p.highlights),
+        JSON.stringify(p.itinerary), JSON.stringify(p.accommodation),
+        JSON.stringify(p.included), JSON.stringify(p.not_included), p.is_active,
+      ],
+    });
+  }
 
-function setObj(key, obj) {
-  const db = loadDB() || {};
-  db[key] = obj;
-  saveDB(db);
-}
-
-// ═══════════════════════════════════════════════════════════════
-// SEED ON FIRST COLD START
-// ═══════════════════════════════════════════════════════════════
-function seedIfNeeded() {
-  const existing = loadDB();
-  if (existing && existing.packages && existing.packages.length > 0) return;
-
-  const data = {
-    packages: PACKAGES,
-    destinations: DESTINATIONS,
-    users: USERS,
-    settings: SETTINGS,
-    offers: OFFERS,
-    enquiries: [],
-  };
-  saveDB(data);
-  console.log("Database seeded with initial data.");
+  // Seed offers
+  for (const o of OFFERS) {
+    await db.execute({
+      sql: `INSERT OR IGNORE INTO offers (id, title, package_id, original_price, offer_price, offer_text, start_date, end_date, is_active)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      args: [o.id, o.title, o.package_id, o.original_price, o.offer_price, o.offer_text, o.start_date, o.end_date, o.is_active],
+    });
+  }
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -122,8 +232,22 @@ function parseBody(event) {
   try { return JSON.parse(event.body); } catch { return {}; }
 }
 
+// Helper: parse JSON field from DB row
+function parseJson(val) {
+  if (!val) return [];
+  if (typeof val === "object") return val;
+  try { return JSON.parse(val); } catch { return []; }
+}
+
+// Helper: parse settings from rows
+function settingsFromRows(rows) {
+  const obj = {};
+  rows.forEach((r) => { obj[r.key] = r.value; });
+  return obj;
+}
+
 // ═══════════════════════════════════════════════════════════════
-// MAIN HANDLER — wrapped in try/catch to ALWAYS return JSON
+// MAIN HANDLER
 // ═══════════════════════════════════════════════════════════════
 exports.handler = async (event, context) => {
   try {
@@ -132,10 +256,12 @@ exports.handler = async (event, context) => {
       return { statusCode: 200, headers: corsHeaders(), body: "" };
     }
 
-    // Seed on first invocation
-    seedIfNeeded();
+    // Initialize Turso connection + schema + seed
+    await initialize();
 
-    // Parse the API route — handle all possible path formats from Netlify
+    const db = getDb();
+
+    // Parse route
     let rawPath = event.path || "/";
     let route = "/";
     if (rawPath.startsWith("/.netlify/functions/api")) {
@@ -143,10 +269,8 @@ exports.handler = async (event, context) => {
     } else if (rawPath.startsWith("/api")) {
       route = rawPath.slice("/api".length) || "/";
     } else {
-      // Fallback: use the path as-is
       route = rawPath;
     }
-    // Normalize: remove trailing slashes (except root), lowercase for matching safety
     if (route.length > 1) route = route.replace(/\/+$/, "");
 
     console.log(`[API] ${event.httpMethod} ${rawPath} -> route: ${route}`);
@@ -159,8 +283,8 @@ exports.handler = async (event, context) => {
     if (route === "/auth/login" && method === "POST") {
       const { email, password } = body;
       if (!email || !password) return err(400, "Email and password required.");
-      const users = getAll("users");
-      const found = users.find((u) => u.email === email);
+      const result = await db.execute({ sql: "SELECT * FROM users WHERE email = ?", args: [email] });
+      const found = result.rows[0];
       if (!found) return err(401, "Invalid credentials.");
       const valid = bcrypt.compareSync(password, found.password);
       if (!valid) return err(401, "Invalid credentials.");
@@ -170,62 +294,57 @@ exports.handler = async (event, context) => {
 
     if (route === "/auth/me" && method === "GET") {
       if (!user) return err(401, "Unauthorized.");
-      const users = getAll("users");
-      const found = users.find((u) => u.id === user.id);
+      const result = await db.execute({ sql: "SELECT id, name, email, role FROM users WHERE id = ?", args: [user.id] });
+      const found = result.rows[0];
       if (!found) return err(404, "User not found.");
-      return ok({ id: found.id, name: found.name, email: found.email, role: found.role });
+      return ok(found);
     }
 
     // ─── PUBLIC PACKAGES ───
     if (route === "/packages" && method === "GET") {
-      const all = getAll("packages");
-      return ok(all.filter((p) => p.is_active === 1).sort((a, b) => a.price - b.price));
+      const result = await db.execute("SELECT * FROM packages WHERE is_active = 1 ORDER BY price ASC");
+      return ok(result.rows.map(deserializePackage));
     }
 
     const pkgSlug = route.match(/^\/packages\/([^/]+)$/);
     if (pkgSlug && method === "GET") {
-      const all = getAll("packages");
-      const found = all.find((p) => p.slug === pkgSlug[1] && p.is_active === 1);
-      if (!found) return err(404, "Package not found.");
-      return ok(found);
+      const result = await db.execute({ sql: "SELECT * FROM packages WHERE slug = ? AND is_active = 1", args: [pkgSlug[1]] });
+      if (result.rows.length === 0) return err(404, "Package not found.");
+      return ok(deserializePackage(result.rows[0]));
     }
 
     // ─── PUBLIC DESTINATIONS ───
     if (route === "/destinations" && method === "GET") {
-      return ok(getAll("destinations").filter((d) => d.is_active === 1).sort((a, b) => a.price - b.price));
+      const result = await db.execute("SELECT * FROM destinations WHERE is_active = 1 ORDER BY price ASC");
+      return ok(result.rows);
     }
 
     // ─── PUBLIC OFFERS ───
     if (route === "/offers" && method === "GET") {
-      const all = getAll("offers");
-      const packages = getAll("packages");
-      return ok(all.filter((o) => o.is_active === 1).map((o) => {
-        const pkg = packages.find((p) => p.id === o.package_id);
-        return { ...o, package_name: pkg ? pkg.name : null, package_slug: pkg ? pkg.slug : null };
-      }).sort((a, b) => a.offer_price - b.offer_price));
+      const result = await db.execute(`
+        SELECT o.*, p.name as package_name, p.slug as package_slug
+        FROM offers o LEFT JOIN packages p ON o.package_id = p.id
+        WHERE o.is_active = 1 ORDER BY o.offer_price ASC
+      `);
+      return ok(result.rows);
     }
 
     // ─── PUBLIC SETTINGS ───
     if (route === "/settings" && method === "GET") {
-      return ok(getObj("settings"));
+      const result = await db.execute("SELECT * FROM settings");
+      return ok(settingsFromRows(result.rows));
     }
 
     // ─── PUBLIC ENQUIRY ───
     if (route === "/enquiries" && method === "POST") {
       const { full_name, phone, email, destination, category, travel_date, travellers, trip_type, budget, message } = body;
       if (!full_name) return err(400, "Name is required.");
-      const enquiries = getAll("enquiries");
-      const maxId = enquiries.reduce((max, e) => Math.max(max, e.id || 0), 0);
-      const enquiry = {
-        id: maxId + 1, full_name, phone: phone || "", email: email || "",
-        destination: destination || "", category: category || "",
-        travel_date: travel_date || "", travellers: travellers || 1,
-        trip_type: trip_type || "", budget: budget || "", message: message || "",
-        status: "new", notes: "", created_at: new Date().toISOString(),
-      };
-      enquiries.push(enquiry);
-      setAll("enquiries", enquiries);
-      return ok({ id: enquiry.id, message: "Enquiry submitted successfully. We will contact you within 24 hours." });
+      const result = await db.execute({
+        sql: `INSERT INTO enquiries (full_name, phone, email, destination, category, travel_date, travellers, trip_type, budget, message, status, notes)
+              VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'new', '')`,
+        args: [full_name, phone || "", email || "", destination || "", category || "", travel_date || "", travellers || "1", trip_type || "", budget || "", message || ""],
+      });
+      return ok({ id: Number(result.lastInsertRowid), message: "Enquiry submitted successfully. We will contact you within 24 hours." });
     }
 
     // ─── ADMIN: require auth for everything below ───
@@ -233,242 +352,294 @@ exports.handler = async (event, context) => {
 
     // ─── ADMIN PACKAGES ───
     if (route === "/admin/packages" && method === "GET") {
-      return ok(getAll("packages").sort((a, b) => a.price - b.price));
+      const result = await db.execute("SELECT * FROM packages ORDER BY price ASC");
+      return ok(result.rows.map(deserializePackage));
     }
 
     if (route === "/admin/packages" && method === "POST") {
       const { name, slug, category, title, country, where: w, image_url, duration, duration_nights, group_size, difficulty, best_season, starting_location, price, offer_price, short_desc, intro, about, highlights, itinerary, accommodation, included, not_included } = body;
       if (!name || !slug || !category || !price) return err(400, "Name, slug, category, and price are required.");
-      const all = getAll("packages");
-      if (all.find((p) => p.slug === slug)) return err(400, "A package with this slug already exists.");
-      const maxId = all.reduce((m, p) => Math.max(m, p.id || 0), 0);
-      const pkg = {
-        id: maxId + 1, name, slug, category, title: title || name, country: country || "",
-        where: w || "", image_url: image_url || "", duration: duration || "",
-        duration_nights: duration_nights || 0, group_size: group_size || "Max 8",
-        difficulty: difficulty || "Easy", best_season: best_season || "",
-        starting_location: starting_location || "", price, offer_price: offer_price || null,
-        short_desc: short_desc || "", intro: intro || "",
-        about: about || [], highlights: highlights || [], itinerary: itinerary || [],
-        accommodation: accommodation || [], included: included || [], not_included: not_included || [],
-        is_active: 1, created_at: new Date().toISOString(), updated_at: new Date().toISOString(),
-      };
-      all.push(pkg);
-      setAll("packages", all);
-      return ok({ id: pkg.id, message: "Package created successfully." });
+      try {
+        const result = await db.execute({
+          sql: `INSERT INTO packages (name, slug, category, title, country, "where", image_url, duration, duration_nights, group_size, difficulty, best_season, starting_location, price, offer_price, short_desc, intro, about, highlights, itinerary, accommodation, included, not_included, is_active)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1)`,
+          args: [
+            name, slug, category, title || name, country || "", w || "", image_url || "",
+            duration || "", duration_nights || 0, group_size || "Max 8", difficulty || "Easy",
+            best_season || "", starting_location || "", price, offer_price || null,
+            short_desc || "", intro || "",
+            JSON.stringify(about || []), JSON.stringify(highlights || []),
+            JSON.stringify(itinerary || []), JSON.stringify(accommodation || []),
+            JSON.stringify(included || []), JSON.stringify(not_included || []),
+          ],
+        });
+        return ok({ id: Number(result.lastInsertRowid), message: "Package created successfully." });
+      } catch (e) {
+        if (e.message?.includes("UNIQUE")) return err(400, "A package with this slug already exists.");
+        throw e;
+      }
     }
 
     const pkgUpdate = route.match(/^\/admin\/packages\/(\d+)$/);
     if (pkgUpdate && method === "PUT") {
       const id = parseInt(pkgUpdate[1]);
-      const all = getAll("packages");
-      const idx = all.findIndex((p) => p.id === id);
-      if (idx === -1) return err(404, "Package not found.");
       const allowed = ['name', 'slug', 'category', 'title', 'country', 'where', 'image_url', 'duration', 'duration_nights', 'group_size', 'difficulty', 'best_season', 'starting_location', 'price', 'offer_price', 'short_desc', 'intro', 'about', 'highlights', 'itinerary', 'accommodation', 'included', 'not_included', 'is_active'];
-      for (const f of allowed) { if (body[f] !== undefined) all[idx][f] = body[f]; }
-      all[idx].updated_at = new Date().toISOString();
-      setAll("packages", all);
+      const sets = [];
+      const args = [];
+      for (const f of allowed) {
+        if (body[f] !== undefined) {
+          let val = body[f];
+          if (["about", "highlights", "itinerary", "accommodation", "included", "not_included"].includes(f)) {
+            val = JSON.stringify(val);
+          }
+          sets.push(`"${f}" = ?`);
+          args.push(val);
+        }
+      }
+      if (sets.length === 0) return err(400, "No fields to update.");
+      sets.push("updated_at = CURRENT_TIMESTAMP");
+      args.push(id);
+      await db.execute({ sql: `UPDATE packages SET ${sets.join(", ")} WHERE id = ?`, args });
       return ok({ message: "Package updated successfully." });
     }
 
     if (pkgUpdate && method === "DELETE") {
       const id = parseInt(pkgUpdate[1]);
-      const all = getAll("packages");
-      const filtered = all.filter((p) => p.id !== id);
-      if (filtered.length === all.length) return err(404, "Package not found.");
-      setAll("packages", filtered);
+      const result = await db.execute({ sql: "DELETE FROM packages WHERE id = ?", args: [id] });
+      if (result.rowsAffected === 0) return err(404, "Package not found.");
       return ok({ message: "Package deleted successfully." });
     }
 
     // ─── ADMIN DESTINATIONS ───
     if (route === "/admin/destinations" && method === "GET") {
-      return ok(getAll("destinations").sort((a, b) => (a.category > b.category ? 1 : -1)));
+      const result = await db.execute("SELECT * FROM destinations ORDER BY category ASC, name ASC");
+      return ok(result.rows);
     }
 
     if (route === "/admin/destinations" && method === "POST") {
       const { name, slug, category, country, image_url, short_desc, price, offer_price, duration, is_active } = body;
       if (!name || !slug || !category || !price) return err(400, "Name, slug, category, and price are required.");
-      const all = getAll("destinations");
-      if (all.find((d) => d.slug === slug)) return err(400, "Slug already exists.");
-      const maxId = all.reduce((m, d) => Math.max(m, d.id || 0), 0);
-      const dest = { id: maxId + 1, name, slug, category, country: country || "", image_url: image_url || "", short_desc: short_desc || "", price, offer_price: offer_price || null, duration: duration || "", is_active: is_active !== undefined ? is_active : 1 };
-      all.push(dest);
-      setAll("destinations", all);
-      return ok({ id: dest.id, message: "Destination created." });
+      try {
+        const result = await db.execute({
+          sql: `INSERT INTO destinations (name, slug, category, country, image_url, short_desc, price, offer_price, duration, is_active)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          args: [name, slug, category, country || "", image_url || "", short_desc || "", price, offer_price || null, duration || "", is_active !== undefined ? is_active : 1],
+        });
+        return ok({ id: Number(result.lastInsertRowid), message: "Destination created." });
+      } catch (e) {
+        if (e.message?.includes("UNIQUE")) return err(400, "Slug already exists.");
+        throw e;
+      }
     }
 
     const destMatch = route.match(/^\/admin\/destinations\/(\d+)$/);
     if (destMatch && method === "PUT") {
       const id = parseInt(destMatch[1]);
-      const all = getAll("destinations");
-      const idx = all.findIndex((d) => d.id === id);
-      if (idx === -1) return err(404, "Destination not found.");
       const allowed = ['name', 'slug', 'category', 'country', 'image_url', 'short_desc', 'price', 'offer_price', 'duration', 'is_active'];
-      for (const f of allowed) { if (body[f] !== undefined) all[idx][f] = body[f]; }
-      all[idx].updated_at = new Date().toISOString();
-      setAll("destinations", all);
+      const sets = [];
+      const args = [];
+      for (const f of allowed) {
+        if (body[f] !== undefined) {
+          sets.push(`"${f}" = ?`);
+          args.push(body[f]);
+        }
+      }
+      if (sets.length === 0) return err(400, "No fields to update.");
+      sets.push("updated_at = CURRENT_TIMESTAMP");
+      args.push(id);
+      const result = await db.execute({ sql: `UPDATE destinations SET ${sets.join(", ")} WHERE id = ?`, args });
+      if (result.rowsAffected === 0) return err(404, "Destination not found.");
       return ok({ message: "Destination updated." });
     }
 
     if (destMatch && method === "DELETE") {
       const id = parseInt(destMatch[1]);
-      const all = getAll("destinations");
-      const filtered = all.filter((d) => d.id !== id);
-      if (filtered.length === all.length) return err(404, "Not found.");
-      setAll("destinations", filtered);
+      const result = await db.execute({ sql: "DELETE FROM destinations WHERE id = ?", args: [id] });
+      if (result.rowsAffected === 0) return err(404, "Not found.");
       return ok({ message: "Destination deleted." });
     }
 
     // ─── ADMIN OFFERS ───
     if (route === "/admin/offers" && method === "GET") {
-      const all = getAll("offers");
-      const packages = getAll("packages");
-      return ok(all.map((o) => {
-        const pkg = packages.find((p) => p.id === o.package_id);
-        return { ...o, package_name: pkg ? pkg.name : null, package_slug: pkg ? pkg.slug : null };
-      }).sort((a, b) => (b.id || 0) - (a.id || 0)));
+      const result = await db.execute(`
+        SELECT o.*, p.name as package_name, p.slug as package_slug
+        FROM offers o LEFT JOIN packages p ON o.package_id = p.id
+        ORDER BY o.id DESC
+      `);
+      return ok(result.rows);
     }
 
     if (route === "/admin/offers" && method === "POST") {
       const { title, package_id, original_price, offer_price, offer_text, start_date, end_date, is_active } = body;
       if (!title || !offer_price) return err(400, "Title and offer price are required.");
-      const all = getAll("offers");
-      const maxId = all.reduce((m, o) => Math.max(m, o.id || 0), 0);
-      const offer = { id: maxId + 1, title, package_id: package_id || null, original_price: original_price || null, offer_price, offer_text: offer_text || "", start_date: start_date || null, end_date: end_date || null, is_active: is_active !== undefined ? is_active : 1 };
-      all.push(offer);
-      setAll("offers", all);
-      return ok({ id: offer.id, message: "Offer created." });
+      const result = await db.execute({
+        sql: `INSERT INTO offers (title, package_id, original_price, offer_price, offer_text, start_date, end_date, is_active)
+              VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+        args: [title, package_id || null, original_price || null, offer_price, offer_text || "", start_date || null, end_date || null, is_active !== undefined ? is_active : 1],
+      });
+      return ok({ id: Number(result.lastInsertRowid), message: "Offer created." });
     }
 
     const offerMatch = route.match(/^\/admin\/offers\/(\d+)$/);
     if (offerMatch && method === "PUT") {
       const id = parseInt(offerMatch[1]);
-      const all = getAll("offers");
-      const idx = all.findIndex((o) => o.id === id);
-      if (idx === -1) return err(404, "Offer not found.");
       const allowed = ['title', 'package_id', 'original_price', 'offer_price', 'offer_text', 'start_date', 'end_date', 'is_active'];
-      for (const f of allowed) { if (body[f] !== undefined) all[idx][f] = body[f]; }
-      all[idx].updated_at = new Date().toISOString();
-      setAll("offers", all);
+      const sets = [];
+      const args = [];
+      for (const f of allowed) {
+        if (body[f] !== undefined) {
+          sets.push(`"${f}" = ?`);
+          args.push(body[f]);
+        }
+      }
+      if (sets.length === 0) return err(400, "No fields to update.");
+      sets.push("updated_at = CURRENT_TIMESTAMP");
+      args.push(id);
+      const result = await db.execute({ sql: `UPDATE offers SET ${sets.join(", ")} WHERE id = ?`, args });
+      if (result.rowsAffected === 0) return err(404, "Offer not found.");
       return ok({ message: "Offer updated." });
     }
 
     if (offerMatch && method === "DELETE") {
       const id = parseInt(offerMatch[1]);
-      const all = getAll("offers");
-      const filtered = all.filter((o) => o.id !== id);
-      if (filtered.length === all.length) return err(404, "Not found.");
-      setAll("offers", filtered);
+      const result = await db.execute({ sql: "DELETE FROM offers WHERE id = ?", args: [id] });
+      if (result.rowsAffected === 0) return err(404, "Not found.");
       return ok({ message: "Offer deleted." });
     }
 
     // ─── ADMIN ENQUIRIES ───
     if (route === "/admin/enquiries" && method === "GET") {
-      let all = getAll("enquiries");
       const qs = event.queryStringParameters || {};
+      let where = [];
+      let args = [];
+
       // Search
       if (qs.search) {
-        const q = qs.search.toLowerCase();
-        all = all.filter((e) =>
-          (e.full_name || "").toLowerCase().includes(q) ||
-          (e.email || "").toLowerCase().includes(q) ||
-          (e.phone || "").includes(q) ||
-          (e.destination || "").toLowerCase().includes(q) ||
-          (e.message || "").toLowerCase().includes(q)
-        );
+        const q = `%${qs.search}%`;
+        where.push(`(full_name LIKE ? OR email LIKE ? OR phone LIKE ? OR destination LIKE ? OR message LIKE ?)`);
+        args.push(q, q, q, q, q);
       }
       // Filter by status
       if (qs.status && qs.status !== "all") {
-        all = all.filter((e) => e.status === qs.status);
+        where.push("status = ?");
+        args.push(qs.status);
       }
       // Filter by destination
       if (qs.destination && qs.destination !== "all") {
-        all = all.filter((e) => (e.destination || "").toLowerCase() === qs.destination.toLowerCase());
+        where.push("LOWER(destination) = LOWER(?)");
+        args.push(qs.destination);
       }
-      // Sort
-      const sortBy = qs.sort === "oldest" ? "asc" : "desc";
-      all.sort((a, b) => {
-        const da = new Date(a.created_at || 0).getTime();
-        const db = new Date(b.created_at || 0).getTime();
-        return sortBy === "asc" ? da - db : db - da;
-      });
-      // Pagination
+
+      const whereClause = where.length > 0 ? `WHERE ${where.join(" AND ")}` : "";
+      const sortBy = qs.sort === "oldest" ? "ASC" : "DESC";
       const page = Math.max(1, parseInt(qs.page) || 1);
       const limit = Math.min(100, Math.max(1, parseInt(qs.limit) || 20));
-      const total = all.length;
-      const totalPages = Math.ceil(total / limit);
-      const start = (page - 1) * limit;
-      const paged = all.slice(start, start + limit);
-      return ok({ data: paged, total, page, totalPages, limit });
+      const offset = (page - 1) * limit;
+
+      // Count total
+      const countResult = await db.execute({ sql: `SELECT COUNT(*) as cnt FROM enquiries ${whereClause}`, args });
+      const total = countResult.rows[0].cnt;
+
+      // Fetch page
+      const result = await db.execute({
+        sql: `SELECT * FROM enquiries ${whereClause} ORDER BY created_at ${sortBy} LIMIT ? OFFSET ?`,
+        args: [...args, limit, offset],
+      });
+
+      return ok({
+        data: result.rows,
+        total,
+        page,
+        totalPages: Math.ceil(total / limit),
+        limit,
+      });
     }
 
     // GET /admin/enquiries/stats
     if (route === "/admin/enquiries/stats" && method === "GET") {
-      const all = getAll("enquiries");
+      const allResult = await db.execute("SELECT status, destination FROM enquiries");
       const statuses = {};
-      all.forEach((e) => { statuses[e.status] = (statuses[e.status] || 0) + 1; });
       const destinations = {};
-      all.forEach((e) => { if (e.destination) destinations[e.destination] = (destinations[e.destination] || 0) + 1; });
-      return ok({ total: all.length, byStatus: statuses, byDestination: destinations });
+      allResult.rows.forEach((e) => {
+        statuses[e.status] = (statuses[e.status] || 0) + 1;
+        if (e.destination) destinations[e.destination] = (destinations[e.destination] || 0) + 1;
+      });
+      return ok({ total: allResult.rows.length, byStatus: statuses, byDestination: destinations });
     }
 
     const enquiryMatch = route.match(/^\/admin\/enquiries\/(\d+)$/);
     if (enquiryMatch && method === "GET") {
       const id = parseInt(enquiryMatch[1]);
-      const all = getAll("enquiries");
-      const found = all.find((e) => e.id === id);
-      if (!found) return err(404, "Enquiry not found.");
-      return ok(found);
+      const result = await db.execute({ sql: "SELECT * FROM enquiries WHERE id = ?", args: [id] });
+      if (result.rows.length === 0) return err(404, "Enquiry not found.");
+      return ok(result.rows[0]);
     }
     if (enquiryMatch && method === "PUT") {
       const id = parseInt(enquiryMatch[1]);
-      const all = getAll("enquiries");
-      const idx = all.findIndex((e) => e.id === id);
-      if (idx === -1) return err(404, "Enquiry not found.");
-      if (body.status !== undefined) all[idx].status = body.status;
-      if (body.notes !== undefined) all[idx].notes = body.notes;
-      all[idx].updated_at = new Date().toISOString();
-      setAll("enquiries", all);
-      return ok({ message: "Enquiry updated.", enquiry: all[idx] });
+      const sets = [];
+      const args = [];
+      if (body.status !== undefined) { sets.push("status = ?"); args.push(body.status); }
+      if (body.notes !== undefined) { sets.push("notes = ?"); args.push(body.notes); }
+      if (sets.length === 0) return err(400, "No fields to update.");
+      sets.push("updated_at = CURRENT_TIMESTAMP");
+      args.push(id);
+      const result = await db.execute({ sql: `UPDATE enquiries SET ${sets.join(", ")} WHERE id = ?`, args });
+      if (result.rowsAffected === 0) return err(404, "Enquiry not found.");
+      const updated = await db.execute({ sql: "SELECT * FROM enquiries WHERE id = ?", args: [id] });
+      return ok({ message: "Enquiry updated.", enquiry: updated.rows[0] });
     }
     if (enquiryMatch && method === "DELETE") {
       const id = parseInt(enquiryMatch[1]);
-      const all = getAll("enquiries");
-      const filtered = all.filter((e) => e.id !== id);
-      if (filtered.length === all.length) return err(404, "Enquiry not found.");
-      setAll("enquiries", filtered);
+      const result = await db.execute({ sql: "DELETE FROM enquiries WHERE id = ?", args: [id] });
+      if (result.rowsAffected === 0) return err(404, "Enquiry not found.");
       return ok({ message: "Enquiry deleted." });
     }
 
     // ─── ADMIN STATS ───
     if (route === "/admin/stats" && method === "GET") {
-      const packages = getAll("packages");
-      const destinations = getAll("destinations");
-      const offers = getAll("offers");
-      const enquiries = getAll("enquiries");
+      const [pkgs, dests, offs, enqs] = await Promise.all([
+        db.execute("SELECT COUNT(*) as total, SUM(CASE WHEN is_active=1 THEN 1 ELSE 0 END) as active FROM packages"),
+        db.execute("SELECT COUNT(*) as total FROM destinations"),
+        db.execute("SELECT COUNT(*) as total, SUM(CASE WHEN is_active=1 THEN 1 ELSE 0 END) as active FROM offers"),
+        db.execute("SELECT COUNT(*) as total, SUM(CASE WHEN status='new' THEN 1 ELSE 0 END) as new_count FROM enquiries"),
+      ]);
       return ok({
-        totalPackages: packages.length,
-        activePackages: packages.filter((p) => p.is_active === 1).length,
-        activeOffers: offers.filter((o) => o.is_active === 1).length,
-        totalEnquiries: enquiries.length,
-        newEnquiries: enquiries.filter((e) => e.status === "new").length,
-        totalDestinations: destinations.length,
+        totalPackages: pkgs.rows[0].total,
+        activePackages: pkgs.rows[0].active || 0,
+        activeOffers: offs.rows[0].active || 0,
+        totalEnquiries: enqs.rows[0].total,
+        newEnquiries: enqs.rows[0].new_count || 0,
+        totalDestinations: dests.rows[0].total,
       });
     }
 
     // ─── ADMIN SETTINGS ───
     if (route === "/admin/settings" && method === "PUT") {
-      const settings = getObj("settings");
-      Object.assign(settings, body);
-      setObj("settings", settings);
+      for (const [k, v] of Object.entries(body)) {
+        await db.execute({ sql: "INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)", args: [k, String(v)] });
+      }
       return ok({ message: "Settings updated." });
     }
 
     // ─── 404 ───
     return err(404, "API endpoint not found.");
   } catch (e) {
-    // ALWAYS return JSON — never crash with an unhandled error
     console.error("Function error:", e.message, e.stack);
     return err(500, "Internal server error: " + e.message);
   }
 };
+
+// ═══════════════════════════════════════════════════════════════
+// DESERIALIZE PACKAGE (parse JSON text fields)
+// ═══════════════════════════════════════════════════════════════
+function deserializePackage(row) {
+  return {
+    ...row,
+    about: parseJson(row.about),
+    highlights: parseJson(row.highlights),
+    itinerary: parseJson(row.itinerary),
+    accommodation: parseJson(row.accommodation),
+    included: parseJson(row.included),
+    not_included: parseJson(row.not_included),
+  };
+}
