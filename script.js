@@ -1807,70 +1807,27 @@ function setupReveal() {
 document.addEventListener('DOMContentLoaded', setupReveal);
 
 // ═══════════════════════════════════════════════════════════════════════════
-// PREMIUM 3D HERO ANIMATION
+// HERO PHOTO — subtle parallax on desktop
 // ═══════════════════════════════════════════════════════════════════════════
 (function() {
-  const heroVisual = document.getElementById('heroVisual');
-  const airplane = document.getElementById('hvAirplane');
-  const particlesContainer = document.getElementById('hvParticles');
-  if (!heroVisual || !airplane) return;
+  const photo = document.querySelector('.hero-photo');
+  if (!photo || window.innerWidth < 768) return;
+  if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
 
-  // ── Respect prefers-reduced-motion ──
-  const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-  if (prefersReducedMotion) {
-    airplane.style.animation = 'none';
-    airplane.style.offsetDistance = '50%';
-    return;
+  let targetX = 0, targetY = 0, currentX = 0, currentY = 0;
+
+  document.addEventListener('mousemove', (e) => {
+    targetX = (e.clientX / window.innerWidth - 0.5) * 2;
+    targetY = (e.clientY / window.innerHeight - 0.5) * 2;
+  }, { passive: true });
+
+  function tick() {
+    currentX += (targetX - currentX) * 0.03;
+    currentY += (targetY - currentY) * 0.03;
+    photo.style.transform = `scale(1.04) translateX(${currentX * -6}px) translateY(${currentY * -4}px)`;
+    requestAnimationFrame(tick);
   }
-
-  // ── Cinematic entrance ──
-  setTimeout(() => {
-    airplane.classList.add('intro-active');
-  }, 300);
-
-  // ── Generate floating particles ──
-  if (particlesContainer) {
-    const particleCount = window.innerWidth < 768 ? 15 : 30;
-    for (let i = 0; i < particleCount; i++) {
-      const p = document.createElement('div');
-      p.className = 'hv-particle' + (Math.random() > 0.5 ? ' white' : '');
-      p.style.left = Math.random() * 100 + '%';
-      p.style.animationDuration = (8 + Math.random() * 12) + 's';
-      p.style.animationDelay = (-Math.random() * 15) + 's';
-      p.style.setProperty('--drift', (Math.random() * 40 - 20) + 'px');
-      p.style.opacity = 0.2 + Math.random() * 0.5;
-      particlesContainer.appendChild(p);
-    }
-  }
-
-  // ── Mouse parallax (desktop only) ──
-  if (window.innerWidth > 768) {
-    let mouseX = 0, mouseY = 0;
-    let currentX = 0, currentY = 0;
-    const globeWrap = document.querySelector('.hv-globe-wrap');
-    const landmarks = document.querySelector('.hv-landmarks');
-    const dpoints = document.querySelector('.hv-dpoints');
-
-    document.addEventListener('mousemove', (e) => {
-      const rect = heroVisual.getBoundingClientRect();
-      const cx = rect.left + rect.width / 2;
-      const cy = rect.top + rect.height / 2;
-      mouseX = (e.clientX - cx) / rect.width;
-      mouseY = (e.clientY - cy) / rect.height;
-    }, { passive: true });
-
-    function animateParallax() {
-      currentX += (mouseX - currentX) * 0.04;
-      currentY += (mouseY - currentY) * 0.04;
-      const tx = currentX * 12;
-      const ty = currentY * 8;
-      if (globeWrap) globeWrap.style.transform = `translate(-40%, -50%) translateX(${tx * 0.5}px) translateY(${ty * 0.5}px)`;
-      if (landmarks) landmarks.style.transform = `translateX(${tx * 1.2}px) translateY(${ty * 1.2}px)`;
-      if (dpoints) dpoints.style.transform = `translateX(${tx * -0.3}px) translateY(${ty * -0.3}px)`;
-      requestAnimationFrame(animateParallax);
-    }
-    requestAnimationFrame(animateParallax);
-  }
+  requestAnimationFrame(tick);
 })();
 
 // ═══════════════════════════════════════════════════════════════════════════

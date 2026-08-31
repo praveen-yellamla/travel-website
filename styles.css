@@ -308,234 +308,54 @@ ol, ul { list-style: none; }
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
-   PREMIUM 3D CINEMATIC TRAVEL VISUAL
+   CINEMATIC HERO PHOTOGRAPH
    ═══════════════════════════════════════════════════════════════════════════ */
 .hero-visual {
   position: absolute;
   top: 0; right: 0; bottom: 0;
-  width: 60%;
-  min-width: 500px;
+  width: 55%;
+  min-width: 400px;
   display: flex;
   align-items: center;
   justify-content: center;
   pointer-events: none;
   z-index: 1;
-  overflow: visible;
-}
-
-/* ── Globe ── */
-.hv-globe-wrap {
-  position: absolute;
-  width: 480px; height: 480px;
-  top: 50%; left: 50%;
-  transform: translate(-40%, -50%);
-  animation: globeFloat 10s ease-in-out infinite;
-}
-.hv-globe {
-  position: absolute;
-  inset: 0;
-  border-radius: 50%;
-  background: radial-gradient(circle at 38% 32%, rgba(20,50,70,.7) 0%, rgba(10,25,45,.95) 40%, rgba(8,18,35,1) 70%, rgba(5,12,25,.9) 100%);
-  border: 1px solid rgba(181,138,74,.18);
-  box-shadow:
-    0 0 60px rgba(181,138,74,.08),
-    0 0 120px rgba(10,25,45,.4),
-    inset 0 0 80px rgba(0,0,0,.4),
-    inset -20px -20px 60px rgba(181,138,74,.04);
   overflow: hidden;
 }
-.hv-globe-glow {
-  position: absolute;
-  inset: -30%;
-  border-radius: 50%;
-  background: radial-gradient(circle at 35% 30%, rgba(181,138,74,.12) 0%, transparent 50%);
-  animation: globeGlow 6s ease-in-out infinite;
-}
-.hv-globe-lines {
+.hero-photo {
   position: absolute;
   inset: 0;
-  width: 100%; height: 100%;
-  animation: globeLinesRotate 40s linear infinite;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center 40%;
+  filter: brightness(.75) saturate(1.15);
+  animation: heroPhotoReveal 1.2s ease-out forwards;
 }
-.hv-globe-surface {
+.hero-photo-overlay {
   position: absolute;
   inset: 0;
-  border-radius: 50%;
   background:
-    radial-gradient(circle at 30% 25%, rgba(181,138,74,.06) 0%, transparent 35%),
-    radial-gradient(circle at 70% 60%, rgba(26,60,50,.2) 0%, transparent 30%),
-    radial-gradient(circle at 50% 80%, rgba(10,30,50,.3) 0%, transparent 25%);
-}
-.hv-globe-sweep {
-  position: absolute;
-  inset: 0;
-  border-radius: 50%;
-  background: linear-gradient(135deg, transparent 30%, rgba(181,138,74,.08) 45%, rgba(255,255,255,.04) 50%, transparent 65%);
-  animation: lightSweep 8s ease-in-out infinite;
-}
-
-/* ── Orbit rings ── */
-.hv-orbit {
-  position: absolute;
-  border-radius: 50%;
-  border: 1px solid rgba(181,138,74,.08);
-  top: 50%; left: 50%;
-}
-.hv-orbit-1 {
-  width: 620px; height: 620px;
-  top: 50%; left: 50%;
-  margin: -310px 0 0 -310px;
-  transform: rotateX(72deg) rotateZ(-15deg);
-  animation: orbitSpin 25s linear infinite;
-  border-color: rgba(181,138,74,.1);
-}
-.hv-orbit-2 {
-  width: 720px; height: 720px;
-  top: 50%; left: 50%;
-  margin: -360px 0 0 -360px;
-  transform: rotateX(68deg) rotateZ(25deg);
-  animation: orbitSpin 35s linear infinite reverse;
-  border-color: rgba(181,138,74,.06);
-}
-
-/* ── Flight route SVG ── */
-.hv-route-svg {
-  position: absolute;
-  top: 50%; left: 50%;
-  width: 700px; height: 700px;
-  margin: -350px 0 0 -350px;
-  z-index: 3;
-}
-#flightPathActive {
-  animation: routeReveal 4s ease-out forwards;
-}
-
-/* ── Airplane ── */
-.hv-airplane {
-  position: absolute;
-  z-index: 5;
-  width: 64px; height: 24px;
-  offset-path: path('M260,60 C420,60 480,200 440,310 C400,420 280,460 180,420 C80,380 20,260 60,160 C100,60 200,40 260,60 Z');
-  offset-distance: 0%;
-  animation: planeFly 18s linear infinite;
-  filter: drop-shadow(0 3px 12px rgba(181,138,74,.5));
-  will-change: offset-distance, transform;
-  transition: offset-distance .1s linear;
-}
-.hv-airplane.intro-active {
-  animation: planeIntro 5s ease-out forwards, planeFly 18s linear 5s infinite;
-}
-.hv-plane-trail {
-  position: absolute;
-  top: 50%;
-  left: -40px;
-  width: 40px; height: 2px;
-  background: linear-gradient(90deg, transparent, rgba(181,138,74,.5));
-  border-radius: 1px;
-  transform: translateY(-50%);
-  filter: blur(1px);
-}
-
-/* ── Destination points ── */
-.hv-dpoints {
-  position: absolute;
-  inset: 0;
-  z-index: 4;
-}
-.hv-dpoint {
-  position: absolute;
-  width: 12px; height: 12px;
-  display: flex; align-items: center; justify-content: center;
-}
-.hv-dp-dot {
-  width: 4px; height: 4px;
-  border-radius: 50%;
-  background: var(--c-accent-light);
-  box-shadow: 0 0 6px rgba(181,138,74,.6);
-}
-.hv-dp-pulse {
-  position: absolute;
-  width: 12px; height: 12px;
-  border-radius: 50%;
-  border: 1px solid rgba(181,138,74,.3);
-  animation: dpPulse 3s ease-out infinite;
-}
-.hv-dpoint:nth-child(2) .hv-dp-pulse { animation-delay: -0.5s; }
-.hv-dpoint:nth-child(3) .hv-dp-pulse { animation-delay: -1s; }
-.hv-dpoint:nth-child(4) .hv-dp-pulse { animation-delay: -1.5s; }
-.hv-dpoint:nth-child(5) .hv-dp-pulse { animation-delay: -2s; }
-.hv-dpoint:nth-child(6) .hv-dp-pulse { animation-delay: -2.5s; }
-
-/* ── Landmarks ── */
-.hv-landmarks {
-  position: absolute;
-  inset: 0;
+    linear-gradient(to right, rgba(14,31,26,.85) 0%, rgba(14,31,26,.4) 25%, rgba(13,26,46,.15) 50%, rgba(13,26,46,.3) 100%),
+    linear-gradient(to bottom, rgba(14,31,26,.3) 0%, transparent 30%, transparent 70%, rgba(14,31,26,.5) 100%);
   z-index: 2;
-  pointer-events: none;
-}
-.hv-lm {
-  position: absolute;
-  opacity: 0;
-  animation: lmAppear 1.5s ease-out forwards;
-}
-.hv-lm-taj { bottom: 12%; left: 15%; animation-delay: 2s; }
-.hv-lm-eiffel { top: 10%; right: 12%; animation-delay: 2.5s; }
-.hv-lm-palm { bottom: 22%; right: 10%; animation-delay: 3s; }
-.hv-lm-pagoda { top: 28%; left: 8%; animation-delay: 3.5s; }
-
-/* ── Particles ── */
-.hv-particles {
-  position: absolute;
-  inset: 0;
-  z-index: 1;
-  pointer-events: none;
-  overflow: hidden;
-}
-.hv-particle {
-  position: absolute;
-  width: 2px; height: 2px;
-  border-radius: 50%;
-  background: rgba(181,138,74,.5);
-  animation: particleFloat linear infinite;
-}
-.hv-particle.white {
-  background: rgba(255,255,255,.3);
-  width: 1.5px; height: 1.5px;
 }
 
-/* ── Explore label ── */
-.hv-label {
-  position: absolute;
-  top: 12%;
-  left: 50%;
-  transform: translateX(-50%);
-  font-family: var(--ff-mono);
-  font-size: 9px;
-  letter-spacing: .25em;
-  text-transform: uppercase;
-  color: rgba(181,138,74,.35);
-  white-space: nowrap;
-  z-index: 6;
-  opacity: 0;
-  animation: fadeInUp .8s ease-out 4s forwards;
-}
-
-/* ── Price badge ── */
+/* ── Price badge (reused on photo) ── */
 .hv-price-badge {
   position: absolute;
-  bottom: 10%;
-  left: 50%;
-  transform: translateX(-50%);
-  background: rgba(255,255,255,.06);
+  bottom: 14%;
+  right: 8%;
+  background: rgba(0,0,0,.45);
   backdrop-filter: blur(16px);
-  border: 1px solid rgba(181,138,74,.15);
-  border-radius: 100px;
-  padding: 12px 24px;
+  border: 1px solid rgba(181,138,74,.2);
+  border-radius: 12px;
+  padding: 14px 22px;
   text-align: center;
   white-space: nowrap;
   z-index: 6;
   opacity: 0;
-  animation: fadeInUp .8s ease-out 4.5s forwards;
+  animation: fadeInUp .8s ease-out 1s forwards;
 }
 .hv-price-label {
   display: block;
@@ -543,7 +363,7 @@ ol, ul { list-style: none; }
   font-size: 9px;
   letter-spacing: .2em;
   text-transform: uppercase;
-  color: rgba(255,255,255,.45);
+  color: rgba(255,255,255,.5);
 }
 .hv-price-value {
   display: block;
@@ -561,58 +381,13 @@ ol, ul { list-style: none; }
 }
 
 /* ═══════ KEYFRAMES ═══════ */
-@keyframes globeFloat {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-8px); }
-}
-@keyframes globeGlow {
-  0%, 100% { opacity: 1; }
-  50% { opacity: .6; }
-}
-@keyframes globeLinesRotate {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
-}
-@keyframes orbitSpin {
-  from { transform: rotateX(72deg) rotateZ(-15deg) rotateZ(0deg); }
-  to { transform: rotateX(72deg) rotateZ(-15deg) rotateZ(360deg); }
-}
-@keyframes lightSweep {
-  0%, 100% { transform: translateX(-20%) rotate(0deg); opacity: 0; }
-  40% { opacity: 1; }
-  50% { transform: translateX(20%) rotate(5deg); opacity: .8; }
-  60% { opacity: 0; }
-}
-@keyframes routeReveal {
-  from { stroke-dashoffset: 1200; }
-  to { stroke-dashoffset: 0; }
-}
-@keyframes planeFly {
-  from { offset-distance: 0%; }
-  to { offset-distance: 100%; }
-}
-@keyframes planeIntro {
-  0% { offset-distance: 0%; opacity: 0; transform: scale(.6); }
-  15% { opacity: 1; transform: scale(1); }
-  100% { offset-distance: 100%; opacity: 1; transform: scale(1); }
-}
-@keyframes dpPulse {
-  0% { transform: scale(1); opacity: .8; }
-  100% { transform: scale(3); opacity: 0; }
-}
-@keyframes lmAppear {
-  from { opacity: 0; transform: translateY(10px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-@keyframes particleFloat {
-  0% { transform: translateY(100vh) translateX(0); opacity: 0; }
-  10% { opacity: 1; }
-  90% { opacity: 1; }
-  100% { transform: translateY(-20px) translateX(var(--drift)); opacity: 0; }
+@keyframes heroPhotoReveal {
+  from { opacity: 0; transform: scale(1.08); }
+  to { opacity: 1; transform: scale(1); }
 }
 @keyframes fadeInUp {
-  from { opacity: 0; transform: translateX(-50%) translateY(10px); }
-  to { opacity: 1; transform: translateX(-50%) translateY(0); }
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 .btn-primary {
   display: inline-flex;
@@ -2554,10 +2329,6 @@ ol, ul { list-style: none; }
   .hero-sub { margin-left: auto; margin-right: auto; }
   .hero-actions { justify-content: center; }
   .hero-visual { width: 50%; min-width: 350px; }
-  .hv-globe-wrap { width: 360px; height: 360px; top: 50%; left: 55%; transform: translate(-50%, -50%); }
-  .hv-orbit-1 { width: 480px; height: 480px; margin: -240px 0 0 -240px; }
-  .hv-orbit-2 { width: 560px; height: 560px; margin: -280px 0 0 -280px; }
-  .hv-route-svg { width: 520px; height: 520px; margin: -260px 0 0 -260px; }
   .dest-grid { grid-template-columns: 1fr 1fr; grid-template-rows: auto; }
   .dest-card.featured { grid-row: auto; aspect-ratio: 4/5; }
   .why-grid { grid-template-columns: 1fr 1fr; }
@@ -2580,13 +2351,10 @@ ol, ul { list-style: none; }
   .hero h1 { font-size: 44px; }
   .hero-sub { margin-left: auto; margin-right: auto; }
   .hero-actions { justify-content: center; }
-  .hero-visual { width: 100%; min-width: 0; top: 0; right: 0; bottom: auto; height: 100%; opacity: .5; }
-  .hv-globe-wrap { width: 280px; height: 280px; top: 40%; left: 60%; transform: translate(-50%, -50%); }
-  .hv-orbit-1 { width: 360px; height: 360px; margin: -180px 0 0 -180px; }
-  .hv-orbit-2 { width: 420px; height: 420px; margin: -210px 0 0 -210px; }
-  .hv-route-svg { width: 380px; height: 380px; margin: -190px 0 0 -190px; }
-  .hv-airplane { width: 48px; height: 18px; }
-  .hv-price-badge { padding: 10px 20px; bottom: 25%; }
+  .hero-visual { width: 100%; min-width: 0; top: 0; right: 0; bottom: auto; height: 100%; opacity: .7; }
+  .hero-photo { object-position: center 35%; filter: brightness(.6) saturate(1.1); }
+  .hero-photo-overlay { background: linear-gradient(to bottom, rgba(14,31,26,.7) 0%, rgba(14,31,26,.45) 40%, rgba(14,31,26,.75) 100%); }
+  .hv-price-badge { padding: 10px 18px; bottom: 20%; right: 50%; transform: translateX(50%); }
   .hv-price-value { font-size: 22px; }
   .hv-lm { display: none; }
   .hv-label { font-size: 8px; }
@@ -2633,7 +2401,7 @@ ol, ul { list-style: none; }
   .offer-sep { display: none; }
   .why-card { padding: 24px; }
   .why-card h3 { font-size: 19px; }
-  .hv-globe-wrap { width: 220px; height: 220px; }
+
   .hv-orbit-1 { width: 280px; height: 280px; margin: -140px 0 0 -140px; }
   .hv-orbit-2 { width: 320px; height: 320px; margin: -160px 0 0 -160px; }
   .hv-route-svg { width: 300px; height: 300px; margin: -150px 0 0 -150px; }
