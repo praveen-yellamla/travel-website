@@ -135,14 +135,13 @@ exports.handler = async (event, context) => {
     // Seed on first invocation
     seedIfNeeded();
 
-    // Parse the API route from the redirected path
-    const apiBase = "/.netlify/functions/api";
+    // Parse the API route — handle both rewritten and original paths
     let route = "/";
-    if (event.path.startsWith(apiBase)) {
-      route = event.path.slice(apiBase.length) || "/";
+    if (event.path.startsWith("/.netlify/functions/api")) {
+      route = event.path.slice("/.netlify/functions/api".length) || "/";
+    } else if (event.path.startsWith("/api")) {
+      route = event.path.slice("/api".length) || "/";
     }
-    if (route.startsWith("/api/")) route = route.slice(4);
-    else if (route === "/api") route = "/";
 
     const method = event.httpMethod;
     const body = parseBody(event);
