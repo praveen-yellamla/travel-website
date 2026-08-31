@@ -1512,19 +1512,42 @@ function renderEnquiryPage(preselectedDest) {
     if (destSelect && preselectedDest) {
       destSelect.value = preselectedDest;
     }
-    form.addEventListener('submit', (e) => {
+    form.addEventListener('submit', async (e) => {
       e.preventDefault();
       const btn = document.getElementById('enquirySubmitBtn');
       if (!btn) return;
-      btn.classList.add('success');
       const span = btn.querySelector('span');
-      if (span) span.textContent = "Enquiry sent — we'll respond within 24h";
-      setTimeout(() => {
-        btn.classList.remove('success');
-        const s = btn.querySelector('span');
-        if (s) s.textContent = 'Request My Trip';
-        form.reset();
-      }, 3500);
+      const origText = span ? span.textContent : 'Request My Trip';
+      btn.disabled = true;
+      if (span) span.textContent = 'Sending...';
+      try {
+        const formData = new FormData(form);
+        const data = Object.fromEntries(formData.entries());
+        const res = await fetch('/api/enquiries', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(data)
+        });
+        if (res.ok) {
+          btn.classList.add('success');
+          if (span) span.textContent = "Enquiry sent — we'll respond within 24h";
+          form.reset();
+        } else {
+          const err = await res.json().catch(() => ({}));
+          alert(err.error || 'Failed to send enquiry. Please try again.');
+          if (span) span.textContent = origText;
+        }
+      } catch (err) {
+        alert('Network error. Please check your connection and try again.');
+        if (span) span.textContent = origText;
+      } finally {
+        btn.disabled = false;
+        setTimeout(() => {
+          btn.classList.remove('success');
+          const s = btn.querySelector('span');
+          if (s) s.textContent = origText;
+        }, 3500);
+      }
     });
   }
 }
