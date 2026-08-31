@@ -361,9 +361,17 @@ function showAdmin() {
 // ═══════════════════════════════════════════════════════════════
 // VIEW LOADER
 // ═══════════════════════════════════════════════════════════════
+let _enqPollTimer = null;
+
 async function loadView() {
   const content = document.getElementById('mainContent');
   content.innerHTML = '<div class="loading"><div class="spinner"></div>Loading...</div>';
+
+  // Stop enquiry polling when navigating away
+  if (currentView !== 'enquiries' && _enqPollTimer) {
+    clearInterval(_enqPollTimer);
+    _enqPollTimer = null;
+  }
 
   try {
     switch (currentView) {
@@ -807,12 +815,77 @@ async function loadEnquiries(el) {
   document.getElementById('enqStatus').addEventListener('change', (e) => { enquiryFilters.status = e.target.value; enquiryFilters.page = 1; loadEnquiries(el); });
   document.getElementById('enqDest').addEventListener('change', (e) => { enquiryFilters.destination = e.target.value; enquiryFilters.page = 1; loadEnquiries(el); });
   document.getElementById('enqSort').addEventListener('change', (e) => { enquiryFilters.sort = e.target.value; enquiryFilters.page = 1; loadEnquiries(el); });
+
+  // Auto-refresh: poll every 15s while on enquiries view
+  if (_enqPollTimer) clearInterval(_enqPollTimer);
+  _enqPollTimer = setInterval(() => {
+    if (currentView === 'enquiries') refreshEnquiriesTable(el);
+  }, 15000);
+}
+
+// Lightweight refresh — updates table rows & stats without re-rendering filters/search
+async function refreshEnquiriesTable(el) {
+  try {
+    const qs = new URLSearchParams();
+    if (enquiryFilters.search) qs.set('search', enquiryFilters.search);
+    if (enquiryFilters.status !== 'all') qs.set('status', enquiryFilters.status);
+    if (enquiryFilters.destination !== 'all') qs.set('destination', enquiryFilters.destination);
+    qs.set('sort', enquiryFilters.sort === 'oldest' ? 'oldest' : 'newest');
+    qs.set('page', enquiryFilters.page);
+    qs.set('limit', enquiryFilters.limit);
+
+    const [result, stats] = await Promise.all([
+      api(`/api/admin/enquiries?${qs}`),
+      api('/api/admin/enquiries/stats')
+    ]);
+    const { data: enquiries, total, page, totalPages } = result;
+
+    // Update header count
+    const header = el.querySelector('.page-header p');
+    if (header) header.textContent = `${total} total enquiry${total !== 1 ? 'ies' : ''}`;
+
+    // Update table body
+    const tbody = el.querySelector('.data-table tbody');
+    if (tbody) {
+      tbody.innerHTML = enquiries.length === 0
+        ? '<tr><td colspan="9" class="table-empty">No enquiries found.</td></tr>'
+        : enquiries.map(e => {
+            const dt = e.created_at ? new Date(e.created_at).toLocaleDateString('en-IN', { day:'2-digit', month:'short', year:'numeric' }) : '\u2014';
+            const tm = e.created_at ? new Date(e.created_at).toLocaleTimeString('en-IN', { hour:'2-digit', minute:'2-digit' }) : '';
+            const badgeCls = e.status === 'new' ? 'new' : e.status === 'converted' ? 'active' : 'read';
+            return `<tr style="cursor:pointer;" onclick="openEnquiry(${e.id})">
+              <td style="font-size:12px; color:#888;">#${e.id}</td>
+              <td class="pkg-name">${e.full_name}${e.notes ? ' \u{1F4DD}' : ''}</td>
+              <td style="font-size:13px;">${e.email || ''}<br>${e.phone || ''}</td>
+              <td>${e.destination || '\u2014'}</td>
+              <td>${e.travellers || '\u2014'}</td>
+              <td>${e.budget || '\u2014'}</td>
+              <td style="font-size:13px;">${dt}<br><span style="color:#888;">${tm}</span></td>
+              <td><span class="badge badge-${badgeCls}" style="font-size:11px;">${e.status}</span></td>
+              <td onclick="event.stopPropagation()">
+                <select onchange="updateEnquiryField(${e.id}, 'status', this.value)" style="padding:4px 8px; border-radius:6px; border:1px solid #ddd; font-size:12px;">
+                  <option value="new" ${e.status==='new'?'selected':''}>New</option>
+                  <option value="contacted" ${e.status==='contacted'?'selected':''}>Contacted</option>
+                  <option value="follow-up" ${e.status==='follow-up'?'selected':''}>Follow-up</option>
+                  <option value="converted" ${e.status==='converted'?'selected':''}>Converted</option>
+                  <option value="closed" ${e.status==='closed'?'selected':''}>Closed</option>
+                </select>
+              </td>
+            </tr>`;
+          }).join('');
+    }
+  } catch (err) {
+    // Silently fail on background poll — don't disrupt the UI
+    console.warn('Enquiry poll failed:', err.message);
+  }
 }
 
 async function updateEnquiryField(id, field, value) {
   try {
     await api(`/api/admin/enquiries/${id}`, { method: 'PUT', body: JSON.stringify({ [field]: value }) });
     showToast('Enquiry updated.');
+    // Immediately refresh table to reflect the change
+    refreshEnquiriesTable(document.getElementById('mainContent'));
   } catch (err) {
     showToast(err.message, 'error');
   }
