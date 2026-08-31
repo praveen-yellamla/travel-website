@@ -1,12 +1,31 @@
 [build]
   command = "npm run build"
   publish = "."
-  environment = { NODE_VERSION = "20" }
+  functions = "netlify/functions"
 
 [build.environment]
   NODE_VERSION = "20"
   NPM_FLAGS = "--no-optional"
 
+# ═══════════════════════════════════════════════════════════
+# API → Netlify Function redirect
+# This must come BEFORE the SPA fallback
+# ═══════════════════════════════════════════════════════════
+[[redirects]]
+  from = "/api"
+  to = "/.netlify/functions/api"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/api/*"
+  to = "/.netlify/functions/api/:splat"
+  status = 200
+  force = true
+
+# ═══════════════════════════════════════════════════════════
+# Admin panel
+# ═══════════════════════════════════════════════════════════
 [[redirects]]
   from = "/admin"
   to = "/admin/index.html"
@@ -17,7 +36,9 @@
   to = "/admin/index.html"
   status = 200
 
-# SPA fallback for hash routing
+# ═══════════════════════════════════════════════════════════
+# SPA fallback for hash routing (last)
+# ═══════════════════════════════════════════════════════════
 [[redirects]]
   from = "/*"
   to = "/index.html"
