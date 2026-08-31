@@ -1810,6 +1810,7 @@ document.addEventListener('DOMContentLoaded', setupReveal);
 // HERO PHOTO — subtle parallax on desktop
 // ═══════════════════════════════════════════════════════════════════════════
 (function() {
+  const photoWrap = document.querySelector('.hero-photo-wrap');
   const photo = document.querySelector('.hero-photo');
   if (!photo || window.innerWidth < 768) return;
   if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
@@ -1824,7 +1825,8 @@ document.addEventListener('DOMContentLoaded', setupReveal);
   function tick() {
     currentX += (targetX - currentX) * 0.03;
     currentY += (targetY - currentY) * 0.03;
-    photo.style.transform = `scale(1.04) translateX(${currentX * -6}px) translateY(${currentY * -4}px)`;
+    photo.style.transform = `scale(1.06) translateX(${currentX * -8}px) translateY(${currentY * -5}px)`;
+    if (photoWrap) photoWrap.style.transform = `translateX(${currentX * 3}px) translateY(${currentY * 2}px)`;
     requestAnimationFrame(tick);
   }
   requestAnimationFrame(tick);
