@@ -1,0 +1,912 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>ASV TOURS — Admin Panel</title>
+  <link rel="icon" type="image/svg+xml" href="/assets/favicon.svg">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Cormorant+Garamond:wght@500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --c-dark: #0b1611;
+      --c-dark2: #132018;
+      --c-dark3: #1a2e25;
+      --c-accent: #b58a4a;
+      --c-gold: #d4a96a;
+      --c-text: #e8e0d4;
+      --c-text2: #a89e90;
+      --c-bg: #f5f1eb;
+      --c-bg2: #ece6dc;
+      --c-card: #ffffff;
+      --c-border: #e2dbd2;
+      --c-success: #2d7a4f;
+      --c-danger: #b54a4a;
+      --c-info: #4a7ab5;
+      --sidebar-w: 260px;
+      --radius: 10px;
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: 'Inter', sans-serif; background: var(--c-bg); color: #2a2520; line-height: 1.5; }
+    h1,h2,h3,h4 { font-family: 'Cormorant Garamond', serif; }
+
+    /* ═══ LOGIN ═══ */
+    .login-page { min-height: 100vh; display: flex; align-items: center; justify-content: center; background: linear-gradient(135deg, var(--c-dark) 0%, var(--c-dark3) 100%); }
+    .login-card { background: var(--c-card); border-radius: 16px; padding: 48px 40px; width: 100%; max-width: 420px; box-shadow: 0 20px 60px rgba(0,0,0,.3); }
+    .login-logo { text-align: center; margin-bottom: 32px; }
+    .login-logo img { height: 48px; }
+    .login-logo h2 { font-size: 28px; color: var(--c-dark); margin-top: 8px; }
+    .login-logo p { color: var(--c-text2); font-size: 14px; margin-top: 4px; }
+    .form-group { margin-bottom: 20px; }
+    .form-group label { display: block; font-size: 13px; font-weight: 500; color: #555; margin-bottom: 6px; text-transform: uppercase; letter-spacing: .5px; }
+    .form-group input, .form-group select, .form-group textarea { width: 100%; padding: 12px 16px; border: 1px solid var(--c-border); border-radius: 8px; font-size: 15px; font-family: inherit; background: #fafaf8; transition: border-color .2s; }
+    .form-group input:focus, .form-group select:focus, .form-group textarea:focus { outline: none; border-color: var(--c-accent); box-shadow: 0 0 0 3px rgba(181,138,74,.12); }
+    .form-group textarea { resize: vertical; min-height: 80px; }
+    .btn { display: inline-flex; align-items: center; gap: 8px; padding: 12px 24px; border: none; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer; transition: all .2s; font-family: inherit; }
+    .btn-primary { background: var(--c-dark); color: white; }
+    .btn-primary:hover { background: var(--c-dark2); transform: translateY(-1px); }
+    .btn-primary:disabled { opacity: .6; cursor: not-allowed; transform: none; }
+    .btn-gold { background: var(--c-accent); color: white; }
+    .btn-gold:hover { background: #c49a5a; }
+    .btn-outline { background: transparent; border: 1px solid var(--c-border); color: #555; }
+    .btn-outline:hover { background: var(--c-bg2); }
+    .btn-danger { background: var(--c-danger); color: white; }
+    .btn-danger:hover { background: #a04040; }
+    .btn-sm { padding: 8px 16px; font-size: 13px; }
+    .login-error { background: #fef2f2; border: 1px solid #fecaca; color: var(--c-danger); padding: 10px 14px; border-radius: 8px; font-size: 14px; margin-bottom: 16px; display: none; }
+
+    /* ═══ ADMIN LAYOUT ═══ */
+    .admin-layout { display: flex; min-height: 100vh; }
+    .sidebar { width: var(--sidebar-w); background: var(--c-dark); color: var(--c-text); padding: 24px 0; position: fixed; top: 0; left: 0; height: 100vh; overflow-y: auto; z-index: 100; }
+    .sidebar-logo { padding: 0 24px 24px; border-bottom: 1px solid rgba(255,255,255,.08); }
+    .sidebar-logo img { height: 36px; }
+    .sidebar-logo h3 { font-size: 18px; margin-top: 6px; color: white; }
+    .sidebar-logo span { font-size: 11px; color: var(--c-text2); text-transform: uppercase; letter-spacing: 1px; }
+    .sidebar-nav { padding: 16px 12px; }
+    .sidebar-nav a { display: flex; align-items: center; gap: 12px; padding: 11px 16px; border-radius: 8px; color: var(--c-text2); text-decoration: none; font-size: 14px; font-weight: 500; transition: all .2s; margin-bottom: 2px; }
+    .sidebar-nav a:hover { color: white; background: rgba(255,255,255,.06); }
+    .sidebar-nav a.active { color: var(--c-accent); background: rgba(181,138,74,.1); }
+    .sidebar-nav a svg { width: 18px; height: 18px; flex-shrink: 0; }
+    .sidebar-nav .nav-divider { height: 1px; background: rgba(255,255,255,.06); margin: 12px 16px; }
+    .sidebar-bottom { position: absolute; bottom: 0; left: 0; right: 0; padding: 16px 12px; border-top: 1px solid rgba(255,255,255,.06); }
+    .main-content { margin-left: var(--sidebar-w); flex: 1; padding: 32px; }
+    .page-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 32px; }
+    .page-header h1 { font-size: 32px; }
+    .page-header p { color: var(--c-text2); font-size: 14px; margin-top: 4px; }
+
+    /* ═══ DASHBOARD STATS ═══ */
+    .stats-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 20px; margin-bottom: 32px; }
+    .stat-card { background: var(--c-card); border-radius: 12px; padding: 24px; border: 1px solid var(--c-border); }
+    .stat-card .stat-icon { width: 40px; height: 40px; border-radius: 10px; display: flex; align-items: center; justify-content: center; margin-bottom: 16px; font-size: 18px; }
+    .stat-card .stat-icon.blue { background: #eef4ff; color: var(--c-info); }
+    .stat-card .stat-icon.gold { background: #fef7ec; color: var(--c-accent); }
+    .stat-card .stat-icon.green { background: #eef8f0; color: var(--c-success); }
+    .stat-card .stat-icon.red { background: #fef2f2; color: var(--c-danger); }
+    .stat-card .stat-value { font-size: 28px; font-weight: 700; font-family: 'Cormorant Garamond', serif; }
+    .stat-card .stat-label { font-size: 13px; color: var(--c-text2); margin-top: 4px; }
+
+    /* ═══ TABLE ═══ */
+    .data-card { background: var(--c-card); border-radius: 12px; border: 1px solid var(--c-border); overflow: hidden; margin-bottom: 24px; }
+    .data-card-header { padding: 20px 24px; border-bottom: 1px solid var(--c-border); display: flex; align-items: center; justify-content: space-between; }
+    .data-card-header h3 { font-size: 20px; }
+    .data-table { width: 100%; border-collapse: collapse; }
+    .data-table th { padding: 12px 20px; text-align: left; font-size: 12px; text-transform: uppercase; letter-spacing: .5px; color: var(--c-text2); background: #fafaf8; border-bottom: 1px solid var(--c-border); font-weight: 600; }
+    .data-table td { padding: 14px 20px; border-bottom: 1px solid #f0ece6; font-size: 14px; vertical-align: middle; }
+    .data-table tr:hover td { background: #fdfcfa; }
+    .data-table .pkg-name { font-weight: 600; }
+    .data-table .pkg-price { font-weight: 700; color: var(--c-accent); }
+    .badge { display: inline-block; padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .3px; }
+    .badge-active { background: #eef8f0; color: var(--c-success); }
+    .badge-inactive { background: #fef2f2; color: var(--c-danger); }
+    .badge-new { background: #eef4ff; color: var(--c-info); }
+    .badge-read { background: #f0ece6; color: #888; }
+    .actions { display: flex; gap: 8px; }
+    .table-img { width: 48px; height: 48px; border-radius: 8px; object-fit: cover; background: #f0ece6; }
+    .table-empty { text-align: center; padding: 48px 20px; color: var(--c-text2); }
+
+    /* ═══ MODAL / EDIT FORM ═══ */
+    .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,.5); z-index: 200; display: none; align-items: center; justify-content: center; padding: 20px; }
+    .modal-overlay.active { display: flex; }
+    .modal { background: var(--c-card); border-radius: 16px; width: 100%; max-width: 680px; max-height: 85vh; overflow-y: auto; box-shadow: 0 20px 60px rgba(0,0,0,.3); }
+    .modal-header { padding: 24px 28px; border-bottom: 1px solid var(--c-border); display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; background: var(--c-card); z-index: 1; }
+    .modal-header h3 { font-size: 22px; }
+    .modal-close { width: 32px; height: 32px; border: none; background: none; font-size: 20px; cursor: pointer; color: var(--c-text2); border-radius: 6px; display: flex; align-items: center; justify-content: center; }
+    .modal-close:hover { background: var(--c-bg2); }
+    .modal-body { padding: 28px; }
+    .modal-footer { padding: 16px 28px 24px; display: flex; gap: 12px; justify-content: flex-end; border-top: 1px solid var(--c-border); }
+    .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    .form-row-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; }
+
+    /* ═══ TOAST ═══ */
+    .toast { position: fixed; top: 24px; right: 24px; padding: 14px 20px; border-radius: 10px; font-size: 14px; font-weight: 500; z-index: 300; transform: translateX(120%); transition: transform .3s ease; }
+    .toast.show { transform: translateX(0); }
+    .toast-success { background: var(--c-success); color: white; }
+    .toast-error { background: var(--c-danger); color: white; }
+
+    /* ═══ MOBILE ═══ */
+    @media (max-width: 768px) {
+      .sidebar { transform: translateX(-100%); transition: transform .3s; }
+      .sidebar.open { transform: translateX(0); }
+      .main-content { margin-left: 0; padding: 20px; }
+      .mobile-toggle { display: flex !important; }
+      .form-row, .form-row-3 { grid-template-columns: 1fr; }
+      .stats-grid { grid-template-columns: 1fr 1fr; }
+      .data-table { font-size: 13px; }
+      .data-table th, .data-table td { padding: 10px 12px; }
+      .page-header h1 { font-size: 24px; }
+    }
+    .mobile-toggle { display: none; position: fixed; top: 16px; left: 16px; z-index: 101; width: 40px; height: 40px; border: none; background: var(--c-dark); color: white; border-radius: 8px; align-items: center; justify-content: center; cursor: pointer; font-size: 18px; }
+
+    /* ═══ LOADING ═══ */
+    .loading { text-align: center; padding: 40px; color: var(--c-text2); }
+    .spinner { width: 24px; height: 24px; border: 3px solid var(--c-border); border-top-color: var(--c-accent); border-radius: 50%; animation: spin .6s linear infinite; margin: 0 auto 12px; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ═══ SCROLLBAR ═══ */
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: #ccc; border-radius: 3px; }
+  </style>
+</head>
+<body>
+
+<!-- ═══ LOGIN PAGE ═══ -->
+<div id="loginPage" class="login-page">
+  <div class="login-card">
+    <div class="login-logo">
+      <img src="/assets/asv-tours-logo.png" alt="ASV TOURS">
+      <h2>Admin Panel</h2>
+      <p>Sign in to manage packages and prices</p>
+    </div>
+    <div class="login-error" id="loginError"></div>
+    <form id="loginForm">
+      <div class="form-group">
+        <label>Email</label>
+        <input type="email" id="loginEmail" placeholder="admin@asvtours.com" required>
+      </div>
+      <div class="form-group">
+        <label>Password</label>
+        <input type="password" id="loginPassword" placeholder="Enter password" required>
+      </div>
+      <button type="submit" class="btn btn-primary" style="width:100%; justify-content:center; padding:14px;" id="loginBtn">
+        Sign In
+      </button>
+    </form>
+  </div>
+</div>
+
+<!-- ═══ ADMIN PANEL ═══ -->
+<div id="adminPanel" class="admin-layout" style="display:none;">
+  <!-- Mobile toggle -->
+  <button class="mobile-toggle" id="mobileToggle" onclick="document.querySelector('.sidebar').classList.toggle('open')">☰</button>
+
+  <!-- Sidebar -->
+  <aside class="sidebar">
+    <div class="sidebar-logo">
+      <img src="/assets/asv-tours-logo.png" alt="ASV TOURS">
+      <h3>Admin Panel</h3>
+      <span>Content Management</span>
+    </div>
+    <nav class="sidebar-nav">
+      <a href="#" data-view="dashboard" class="active">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+        Dashboard
+      </a>
+      <a href="#" data-view="packages">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/></svg>
+        Packages
+      </a>
+      <a href="#" data-view="destinations">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>
+        Destinations
+      </a>
+      <a href="#" data-view="offers">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 2l2.4 7.4H22l-6.2 4.5 2.4 7.4L12 16.8 5.8 21.3l2.4-7.4L2 9.4h7.6z"/></svg>
+        Offers
+      </a>
+      <div class="nav-divider"></div>
+      <a href="#" data-view="enquiries">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><path d="M22 6l-10 7L2 6"/></svg>
+        Enquiries
+      </a>
+      <a href="#" data-view="settings">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.32 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
+        Settings
+      </a>
+      <div class="nav-divider"></div>
+      <a href="/" target="_blank">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6"/><path d="M15 3h6v6"/><path d="M10 14L21 3"/></svg>
+        View Website
+      </a>
+      <a href="#" id="logoutBtn" style="color: var(--c-danger);">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><path d="M16 17l5-5-5-5M21 12H9"/></svg>
+        Logout
+      </a>
+    </nav>
+  </aside>
+
+  <!-- Main Content Area -->
+  <div class="main-content" id="mainContent">
+    <div class="loading"><div class="spinner"></div>Loading...</div>
+  </div>
+</div>
+
+<!-- Edit Modal -->
+<div class="modal-overlay" id="editModal">
+  <div class="modal">
+    <div class="modal-header">
+      <h3 id="modalTitle">Edit Package</h3>
+      <button class="modal-close" onclick="closeModal()">&times;</button>
+    </div>
+    <div class="modal-body" id="modalBody"></div>
+    <div class="modal-footer" id="modalFooter">
+      <button class="btn btn-outline" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-primary" id="modalSaveBtn" onclick="saveModal()">Save Changes</button>
+    </div>
+  </div>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<script>
+// ═══════════════════════════════════════════════════════════════
+// STATE
+// ═══════════════════════════════════════════════════════════════
+let token = localStorage.getItem('adminToken');
+let currentView = 'dashboard';
+let currentEditType = '';
+let currentEditId = null;
+
+// ═══════════════════════════════════════════════════════════════
+// API HELPERS
+// ═══════════════════════════════════════════════════════════════
+async function api(url, options = {}) {
+  const headers = { 'Content-Type': 'application/json' };
+  if (token) headers['Authorization'] = `Bearer ${token}`;
+  try {
+    const res = await fetch(url, { ...options, headers: { ...headers, ...options.headers } });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Request failed');
+    return data;
+  } catch (err) {
+    if (err.message === 'Invalid or expired token.' || err.message === 'Access denied. No token provided.') {
+      logout();
+    }
+    throw err;
+  }
+}
+
+function showToast(msg, type = 'success') {
+  const toast = document.getElementById('toast');
+  toast.textContent = msg;
+  toast.className = `toast toast-${type} show`;
+  setTimeout(() => toast.classList.remove('show'), 3000);
+}
+
+function formatPrice(n) {
+  if (!n) return '—';
+  return '₹' + Number(n).toLocaleString('en-IN');
+}
+
+// ═══════════════════════════════════════════════════════════════
+// AUTH
+// ═══════════════════════════════════════════════════════════════
+document.getElementById('loginForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const email = document.getElementById('loginEmail').value;
+  const password = document.getElementById('loginPassword').value;
+  const btn = document.getElementById('loginBtn');
+  const errEl = document.getElementById('loginError');
+
+  btn.disabled = true;
+  btn.textContent = 'Signing in...';
+  errEl.style.display = 'none';
+
+  try {
+    const data = await api('/api/auth/login', {
+      method: 'POST',
+      body: JSON.stringify({ email, password })
+    });
+    token = data.token;
+    localStorage.setItem('adminToken', token);
+    showAdmin();
+  } catch (err) {
+    errEl.textContent = err.message;
+    errEl.style.display = 'block';
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Sign In';
+  }
+});
+
+function logout() {
+  token = null;
+  localStorage.removeItem('adminToken');
+  document.getElementById('loginPage').style.display = '';
+  document.getElementById('adminPanel').style.display = 'none';
+}
+
+document.getElementById('logoutBtn').addEventListener('click', (e) => {
+  e.preventDefault();
+  logout();
+});
+
+// ═══════════════════════════════════════════════════════════════
+// NAVIGATION
+// ═══════════════════════════════════════════════════════════════
+document.querySelectorAll('.sidebar-nav a[data-view]').forEach(a => {
+  a.addEventListener('click', (e) => {
+    e.preventDefault();
+    currentView = a.dataset.view;
+    document.querySelectorAll('.sidebar-nav a').forEach(l => l.classList.remove('active'));
+    a.classList.add('active');
+    document.querySelector('.sidebar').classList.remove('open');
+    loadView();
+  });
+});
+
+function showAdmin() {
+  document.getElementById('loginPage').style.display = 'none';
+  document.getElementById('adminPanel').style.display = 'flex';
+  loadView();
+}
+
+// ═══════════════════════════════════════════════════════════════
+// VIEW LOADER
+// ═══════════════════════════════════════════════════════════════
+async function loadView() {
+  const content = document.getElementById('mainContent');
+  content.innerHTML = '<div class="loading"><div class="spinner"></div>Loading...</div>';
+
+  try {
+    switch (currentView) {
+      case 'dashboard': await loadDashboard(content); break;
+      case 'packages': await loadPackages(content); break;
+      case 'destinations': await loadDestinations(content); break;
+      case 'offers': await loadOffers(content); break;
+      case 'enquiries': await loadEnquiries(content); break;
+      case 'settings': await loadSettings(content); break;
+      default: content.innerHTML = '<p>Page not found.</p>';
+    }
+  } catch (err) {
+    content.innerHTML = `<div class="table-empty"><p>Error: ${err.message}</p></div>`;
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════
+// DASHBOARD
+// ═══════════════════════════════════════════════════════════════
+async function loadDashboard(el) {
+  const stats = await api('/api/admin/stats');
+  el.innerHTML = `
+    <div class="page-header">
+      <div>
+        <h1>Dashboard</h1>
+        <p>Overview of your ASV TOURS content</p>
+      </div>
+    </div>
+    <div class="stats-grid">
+      <div class="stat-card">
+        <div class="stat-icon blue">📦</div>
+        <div class="stat-value">${stats.totalPackages}</div>
+        <div class="stat-label">Total Packages</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon green">✅</div>
+        <div class="stat-value">${stats.activePackages}</div>
+        <div class="stat-label">Active Packages</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon gold">⭐</div>
+        <div class="stat-value">${stats.activeOffers}</div>
+        <div class="stat-label">Active Offers</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon red">✉️</div>
+        <div class="stat-value">${stats.totalEnquiries}</div>
+        <div class="stat-label">Total Enquiries</div>
+      </div>
+    </div>
+    <div class="stats-grid">
+      <div class="stat-card">
+        <div class="stat-icon red">🆕</div>
+        <div class="stat-value">${stats.newEnquiries}</div>
+        <div class="stat-label">New Enquiries</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon blue">📍</div>
+        <div class="stat-value">${stats.totalDestinations}</div>
+        <div class="stat-label">Destinations</div>
+      </div>
+    </div>
+  `;
+}
+
+// ═══════════════════════════════════════════════════════════════
+// PACKAGES
+// ═══════════════════════════════════════════════════════════════
+async function loadPackages(el) {
+  const packages = await api('/api/admin/packages');
+  el.innerHTML = `
+    <div class="page-header">
+      <div>
+        <h1>Packages</h1>
+        <p>Manage tour packages and pricing</p>
+      </div>
+      <button class="btn btn-primary" onclick="openNewPackage()">+ Add Package</button>
+    </div>
+    <div class="data-card">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Package</th>
+            <th>Category</th>
+            <th>Duration</th>
+            <th>Price</th>
+            <th>Offer Price</th>
+            <th>Status</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${packages.length === 0 ? '<tr><td colspan="7" class="table-empty">No packages found.</td></tr>' : packages.map(p => `
+            <tr>
+              <td>
+                <div style="display:flex; align-items:center; gap:12px;">
+                  <img src="${p.image_url || ''}" class="table-img" onerror="this.style.display='none'">
+                  <div>
+                    <div class="pkg-name">${p.name}</div>
+                    <div style="font-size:12px; color:#888;">${p.slug}</div>
+                  </div>
+                </div>
+              </td>
+              <td><span class="badge ${p.category === 'india' ? 'badge-active' : 'badge-new'}">${p.category}</span></td>
+              <td>${p.duration || '—'}</td>
+              <td class="pkg-price">${formatPrice(p.price)}</td>
+              <td>${p.offer_price ? '<span class="pkg-price">' + formatPrice(p.offer_price) + '</span>' : '—'}</td>
+              <td><span class="badge ${p.is_active ? 'badge-active' : 'badge-inactive'}">${p.is_active ? 'Active' : 'Inactive'}</span></td>
+              <td class="actions">
+                <button class="btn btn-outline btn-sm" onclick="editPackage(${p.id})">Edit</button>
+                <button class="btn btn-danger btn-sm" onclick="deleteItem('packages', ${p.id}, '${p.name}')">Delete</button>
+              </td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
+    </div>
+  `;
+}
+
+function openNewPackage() {
+  currentEditType = 'package';
+  currentEditId = null;
+  document.getElementById('modalTitle').textContent = 'Add Package';
+  document.getElementById('modalBody').innerHTML = getPackageForm({});
+  document.getElementById('editModal').classList.add('active');
+}
+
+async function editPackage(id) {
+  const packages = await api('/api/admin/packages');
+  const pkg = packages.find(p => p.id === id);
+  if (!pkg) return;
+  currentEditType = 'package';
+  currentEditId = id;
+  document.getElementById('modalTitle').textContent = 'Edit Package';
+  document.getElementById('modalBody').innerHTML = getPackageForm(pkg);
+  document.getElementById('editModal').classList.add('active');
+}
+
+function getPackageForm(pkg) {
+  return `
+    <div class="form-row">
+      <div class="form-group"><label>Package Name</label><input id="f_name" value="${pkg.name || ''}" required></div>
+      <div class="form-group"><label>Slug</label><input id="f_slug" value="${pkg.slug || ''}"></div>
+    </div>
+    <div class="form-row-3">
+      <div class="form-group"><label>Category</label>
+        <select id="f_category"><option value="india" ${pkg.category==='india'?'selected':''}>India</option><option value="international" ${pkg.category==='international'?'selected':''}>International</option></select>
+      </div>
+      <div class="form-group"><label>Price (₹)</label><input type="number" id="f_price" value="${pkg.price || ''}" required></div>
+      <div class="form-group"><label>Offer Price (₹)</label><input type="number" id="f_offer_price" value="${pkg.offer_price || ''}"></div>
+    </div>
+    <div class="form-row-3">
+      <div class="form-group"><label>Duration</label><input id="f_duration" value="${pkg.duration || ''}" placeholder="3N/4D"></div>
+      <div class="form-group"><label>Duration (Nights)</label><input type="number" id="f_duration_nights" value="${pkg.duration_nights || ''}"></div>
+      <div class="form-group"><label>Group Size</label><input id="f_group_size" value="${pkg.group_size || ''}" placeholder="Max 8"></div>
+    </div>
+    <div class="form-row-3">
+      <div class="form-group"><label>Difficulty</label><input id="f_difficulty" value="${pkg.difficulty || ''}" placeholder="Easy"></div>
+      <div class="form-group"><label>Best Season</label><input id="f_best_season" value="${pkg.best_season || ''}" placeholder="Oct — Mar"></div>
+      <div class="form-group"><label>Starting Location</label><input id="f_starting_location" value="${pkg.starting_location || ''}"></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label>Country</label><input id="f_country" value="${pkg.country || ''}"></div>
+      <div class="form-group"><label>Route / Where</label><input id="f_where" value="${pkg.where || ''}"></div>
+    </div>
+    <div class="form-group"><label>Image URL</label><input id="f_image_url" value="${pkg.image_url || ''}" placeholder="https://..."></div>
+    <div class="form-group"><label>Short Description</label><input id="f_short_desc" value="${pkg.short_desc || ''}"></div>
+    <div class="form-group"><label>Intro</label><textarea id="f_intro" rows="3">${pkg.intro || ''}</textarea></div>
+    <div class="form-group"><label>Status</label>
+      <select id="f_is_active"><option value="1" ${pkg.is_active!==0?'selected':''}>Active</option><option value="0" ${pkg.is_active===0?'selected':''}>Inactive</option></select>
+    </div>
+  `;
+}
+
+// ═══════════════════════════════════════════════════════════════
+// DESTINATIONS
+// ═══════════════════════════════════════════════════════════════
+async function loadDestinations(el) {
+  const dests = await api('/api/admin/destinations');
+  el.innerHTML = `
+    <div class="page-header">
+      <div>
+        <h1>Destinations</h1>
+        <p>Manage destination listings</p>
+      </div>
+      <button class="btn btn-primary" onclick="openNewDest()">+ Add Destination</button>
+    </div>
+    <div class="data-card">
+      <table class="data-table">
+        <thead><tr><th>Destination</th><th>Category</th><th>Duration</th><th>Price</th><th>Status</th><th>Actions</th></tr></thead>
+        <tbody>
+          ${dests.length === 0 ? '<tr><td colspan="6" class="table-empty">No destinations found.</td></tr>' : dests.map(d => `
+            <tr>
+              <td>
+                <div style="display:flex; align-items:center; gap:12px;">
+                  <img src="${d.image_url || ''}" class="table-img" onerror="this.style.display='none'">
+                  <div><div class="pkg-name">${d.name}</div><div style="font-size:12px; color:#888;">${d.country || ''}</div></div>
+                </div>
+              </td>
+              <td><span class="badge ${d.category==='india'?'badge-active':'badge-new'}">${d.category}</span></td>
+              <td>${d.duration || '—'}</td>
+              <td class="pkg-price">${formatPrice(d.price)}</td>
+              <td><span class="badge ${d.is_active?'badge-active':'badge-inactive'}">${d.is_active?'Active':'Inactive'}</span></td>
+              <td class="actions">
+                <button class="btn btn-outline btn-sm" onclick="editDest(${d.id})">Edit</button>
+                <button class="btn btn-danger btn-sm" onclick="deleteItem('destinations', ${d.id}, '${d.name}')">Delete</button>
+              </td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
+    </div>
+  `;
+}
+
+function openNewDest() {
+  currentEditType = 'destination';
+  currentEditId = null;
+  document.getElementById('modalTitle').textContent = 'Add Destination';
+  document.getElementById('modalBody').innerHTML = getDestForm({});
+  document.getElementById('editModal').classList.add('active');
+}
+
+async function editDest(id) {
+  const dests = await api('/api/admin/destinations');
+  const d = dests.find(x => x.id === id);
+  if (!d) return;
+  currentEditType = 'destination';
+  currentEditId = id;
+  document.getElementById('modalTitle').textContent = 'Edit Destination';
+  document.getElementById('modalBody').innerHTML = getDestForm(d);
+  document.getElementById('editModal').classList.add('active');
+}
+
+function getDestForm(d) {
+  return `
+    <div class="form-row">
+      <div class="form-group"><label>Name</label><input id="f_name" value="${d.name || ''}" required></div>
+      <div class="form-group"><label>Slug</label><input id="f_slug" value="${d.slug || ''}"></div>
+    </div>
+    <div class="form-row-3">
+      <div class="form-group"><label>Category</label>
+        <select id="f_category"><option value="india" ${d.category==='india'?'selected':''}>India</option><option value="international" ${d.category==='international'?'selected':''}>International</option></select>
+      </div>
+      <div class="form-group"><label>Price (₹)</label><input type="number" id="f_price" value="${d.price || ''}" required></div>
+      <div class="form-group"><label>Offer Price (₹)</label><input type="number" id="f_offer_price" value="${d.offer_price || ''}"></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label>Country</label><input id="f_country" value="${d.country || ''}"></div>
+      <div class="form-group"><label>Duration</label><input id="f_duration" value="${d.duration || ''}" placeholder="3N/4D"></div>
+    </div>
+    <div class="form-group"><label>Image URL</label><input id="f_image_url" value="${d.image_url || ''}"></div>
+    <div class="form-group"><label>Short Description</label><textarea id="f_short_desc" rows="2">${d.short_desc || ''}</textarea></div>
+    <div class="form-group"><label>Status</label>
+      <select id="f_is_active"><option value="1" ${d.is_active!==0?'selected':''}>Active</option><option value="0" ${d.is_active===0?'selected':''}>Inactive</option></select>
+    </div>
+  `;
+}
+
+// ═══════════════════════════════════════════════════════════════
+// OFFERS
+// ═══════════════════════════════════════════════════════════════
+async function loadOffers(el) {
+  const offers = await api('/api/admin/offers');
+  el.innerHTML = `
+    <div class="page-header">
+      <div>
+        <h1>Offers</h1>
+        <p>Manage promotional pricing</p>
+      </div>
+      <button class="btn btn-primary" onclick="openNewOffer()">+ Add Offer</button>
+    </div>
+    <div class="data-card">
+      <table class="data-table">
+        <thead><tr><th>Offer</th><th>Package</th><th>Original</th><th>Offer Price</th><th>Valid</th><th>Status</th><th>Actions</th></tr></thead>
+        <tbody>
+          ${offers.length === 0 ? '<tr><td colspan="7" class="table-empty">No offers found.</td></tr>' : offers.map(o => `
+            <tr>
+              <td><div class="pkg-name">${o.title}</div><div style="font-size:12px;color:#888;">${o.offer_text || ''}</div></td>
+              <td>${o.package_name || '—'}</td>
+              <td>${o.original_price ? formatPrice(o.original_price) : '—'}</td>
+              <td class="pkg-price">${formatPrice(o.offer_price)}</td>
+              <td style="font-size:13px;">${o.start_date || '?'} — ${o.end_date || '?'}</td>
+              <td><span class="badge ${o.is_active?'badge-active':'badge-inactive'}">${o.is_active?'Active':'Inactive'}</span></td>
+              <td class="actions">
+                <button class="btn btn-outline btn-sm" onclick="editOffer(${o.id})">Edit</button>
+                <button class="btn btn-danger btn-sm" onclick="deleteItem('offers', ${o.id}, '${o.title}')">Delete</button>
+              </td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
+    </div>
+  `;
+}
+
+async function openNewOffer() {
+  const packages = await api('/api/admin/packages');
+  currentEditType = 'offer';
+  currentEditId = null;
+  document.getElementById('modalTitle').textContent = 'Add Offer';
+  document.getElementById('modalBody').innerHTML = getOfferForm({}, packages);
+  document.getElementById('editModal').classList.add('active');
+}
+
+async function editOffer(id) {
+  const [offers, packages] = await Promise.all([api('/api/admin/offers'), api('/api/admin/packages')]);
+  const o = offers.find(x => x.id === id);
+  if (!o) return;
+  currentEditType = 'offer';
+  currentEditId = id;
+  document.getElementById('modalTitle').textContent = 'Edit Offer';
+  document.getElementById('modalBody').innerHTML = getOfferForm(o, packages);
+  document.getElementById('editModal').classList.add('active');
+}
+
+function getOfferForm(o, packages) {
+  const pkgOptions = packages.map(p => `<option value="${p.id}" ${o.package_id==p.id?'selected':''}>${p.name} (${formatPrice(p.price)})</option>`).join('');
+  return `
+    <div class="form-group"><label>Offer Title</label><input id="f_title" value="${o.title || ''}" required></div>
+    <div class="form-group"><label>Package</label><select id="f_package_id"><option value="">— Select —</option>${pkgOptions}</select></div>
+    <div class="form-row-3">
+      <div class="form-group"><label>Original Price (₹)</label><input type="number" id="f_original_price" value="${o.original_price || ''}"></div>
+      <div class="form-group"><label>Offer Price (₹)</label><input type="number" id="f_offer_price" value="${o.offer_price || ''}" required></div>
+      <div class="form-group"><label>Status</label>
+        <select id="f_is_active"><option value="1" ${o.is_active!==0?'selected':''}>Active</option><option value="0" ${o.is_active===0?'selected':''}>Inactive</option></select>
+      </div>
+    </div>
+    <div class="form-group"><label>Offer Text</label><input id="f_offer_text" value="${o.offer_text || ''}"></div>
+    <div class="form-row">
+      <div class="form-group"><label>Start Date</label><input type="date" id="f_start_date" value="${o.start_date || ''}"></div>
+      <div class="form-group"><label>End Date</label><input type="date" id="f_end_date" value="${o.end_date || ''}"></div>
+    </div>
+  `;
+}
+
+// ═══════════════════════════════════════════════════════════════
+// ENQUIRIES
+// ═══════════════════════════════════════════════════════════════
+async function loadEnquiries(el) {
+  const enquiries = await api('/api/admin/enquiries');
+  el.innerHTML = `
+    <div class="page-header">
+      <div>
+        <h1>Enquiries</h1>
+        <p>Customer trip enquiries</p>
+      </div>
+    </div>
+    <div class="data-card">
+      <table class="data-table">
+        <thead><tr><th>Name</th><th>Contact</th><th>Destination</th><th>Travelers</th><th>Budget</th><th>Date</th><th>Status</th><th>Actions</th></tr></thead>
+        <tbody>
+          ${enquiries.length === 0 ? '<tr><td colspan="8" class="table-empty">No enquiries yet.</td></tr>' : enquiries.map(e => `
+            <tr>
+              <td class="pkg-name">${e.full_name}</td>
+              <td style="font-size:13px;">${e.email || ''}<br>${e.phone || ''}</td>
+              <td>${e.destination || '—'}</td>
+              <td>${e.travellers || '—'}</td>
+              <td>${e.budget || '—'}</td>
+              <td style="font-size:13px;">${e.travel_date || '—'}</td>
+              <td><span class="badge badge-${e.status === 'new' ? 'new' : e.status === 'read' ? 'read' : 'active'}">${e.status}</span></td>
+              <td>
+                <select onchange="updateEnquiryStatus(${e.id}, this.value)" style="padding:4px 8px; border-radius:6px; border:1px solid #ddd; font-size:12px;">
+                  <option value="new" ${e.status==='new'?'selected':''}>New</option>
+                  <option value="read" ${e.status==='read'?'selected':''}>Read</option>
+                  <option value="contacted" ${e.status==='contacted'?'selected':''}>Contacted</option>
+                  <option value="closed" ${e.status==='closed'?'selected':''}>Closed</option>
+                </select>
+              </td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
+    </div>
+  `;
+}
+
+async function updateEnquiryStatus(id, status) {
+  try {
+    await api(`/api/admin/enquiries/${id}`, { method: 'PUT', body: JSON.stringify({ status }) });
+    showToast('Enquiry status updated.');
+  } catch (err) {
+    showToast(err.message, 'error');
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════
+// SETTINGS
+// ═══════════════════════════════════════════════════════════════
+async function loadSettings(el) {
+  const settings = await api('/api/settings');
+  el.innerHTML = `
+    <div class="page-header">
+      <div>
+        <h1>Settings</h1>
+        <p>Global website settings</p>
+      </div>
+    </div>
+    <div class="data-card" style="max-width:600px;">
+      <div class="data-card-header"><h3>General</h3></div>
+      <div style="padding:24px;">
+        <div class="form-group"><label>Site Title</label><input id="s_site_title" value="${settings.site_title || ''}"></div>
+        <div class="form-group"><label>Minimum Display Price (₹)</label><input type="number" id="s_min_price" value="${settings.min_price || ''}"></div>
+        <div class="form-group"><label>Offer Strip Text</label><input id="s_offer_text" value="${settings.offer_text || ''}"></div>
+        <button class="btn btn-primary" onclick="saveSettings()">Save Settings</button>
+      </div>
+    </div>
+  `;
+}
+
+async function saveSettings() {
+  const data = {
+    site_title: document.getElementById('s_site_title').value,
+    min_price: document.getElementById('s_min_price').value,
+    offer_text: document.getElementById('s_offer_text').value,
+  };
+  try {
+    await api('/api/admin/settings', { method: 'PUT', body: JSON.stringify(data) });
+    showToast('Settings saved successfully.');
+  } catch (err) {
+    showToast(err.message, 'error');
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════
+// MODAL / SAVE
+// ═══════════════════════════════════════════════════════════════
+function closeModal() {
+  document.getElementById('editModal').classList.remove('active');
+}
+
+async function saveModal() {
+  const btn = document.getElementById('modalSaveBtn');
+  btn.disabled = true;
+  btn.textContent = 'Saving...';
+
+  try {
+    let data = {};
+    const getVal = (id) => {
+      const el = document.getElementById(id);
+      return el ? el.value : '';
+    };
+
+    switch (currentEditType) {
+      case 'package':
+        data = {
+          name: getVal('f_name'),
+          slug: getVal('f_slug'),
+          category: getVal('f_category'),
+          country: getVal('f_country'),
+          where: getVal('f_where'),
+          image_url: getVal('f_image_url'),
+          duration: getVal('f_duration'),
+          duration_nights: parseInt(getVal('f_duration_nights')) || 0,
+          group_size: getVal('f_group_size'),
+          difficulty: getVal('f_difficulty'),
+          best_season: getVal('f_best_season'),
+          starting_location: getVal('f_starting_location'),
+          price: parseInt(getVal('f_price')) || 0,
+          offer_price: parseInt(getVal('f_offer_price')) || null,
+          short_desc: getVal('f_short_desc'),
+          intro: getVal('f_intro'),
+          is_active: parseInt(getVal('f_is_active')),
+          title: getVal('f_name'),
+        };
+        if (!data.name || !data.price) throw new Error('Name and price are required.');
+        if (currentEditId) {
+          await api(`/api/admin/packages/${currentEditId}`, { method: 'PUT', body: JSON.stringify(data) });
+        } else {
+          if (!data.slug) data.slug = data.name.toLowerCase().replace(/[^a-z0-9]+/g, '-');
+          await api('/api/admin/packages', { method: 'POST', body: JSON.stringify(data) });
+        }
+        break;
+
+      case 'destination':
+        data = {
+          name: getVal('f_name'),
+          slug: getVal('f_slug'),
+          category: getVal('f_category'),
+          country: getVal('f_country'),
+          image_url: getVal('f_image_url'),
+          short_desc: getVal('f_short_desc'),
+          price: parseInt(getVal('f_price')) || 0,
+          offer_price: parseInt(getVal('f_offer_price')) || null,
+          duration: getVal('f_duration'),
+          is_active: parseInt(getVal('f_is_active')),
+        };
+        if (!data.name || !data.price) throw new Error('Name and price are required.');
+        if (currentEditId) {
+          await api(`/api/admin/destinations/${currentEditId}`, { method: 'PUT', body: JSON.stringify(data) });
+        } else {
+          if (!data.slug) data.slug = data.name.toLowerCase().replace(/[^a-z0-9]+/g, '-');
+          await api('/api/admin/destinations', { method: 'POST', body: JSON.stringify(data) });
+        }
+        break;
+
+      case 'offer':
+        data = {
+          title: getVal('f_title'),
+          package_id: getVal('f_package_id') || null,
+          original_price: parseInt(getVal('f_original_price')) || null,
+          offer_price: parseInt(getVal('f_offer_price')) || 0,
+          offer_text: getVal('f_offer_text'),
+          start_date: getVal('f_start_date') || null,
+          end_date: getVal('f_end_date') || null,
+          is_active: parseInt(getVal('f_is_active')),
+        };
+        if (!data.title || !data.offer_price) throw new Error('Title and offer price are required.');
+        if (currentEditId) {
+          await api(`/api/admin/offers/${currentEditId}`, { method: 'PUT', body: JSON.stringify(data) });
+        } else {
+          await api('/api/admin/offers', { method: 'POST', body: JSON.stringify(data) });
+        }
+        break;
+    }
+
+    showToast(`${currentEditType.charAt(0).toUpperCase() + currentEditType.slice(1)} saved successfully.`);
+    closeModal();
+    loadView();
+  } catch (err) {
+    showToast(err.message, 'error');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Save Changes';
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════
+// DELETE
+// ═══════════════════════════════════════════════════════════════
+async function deleteItem(type, id, name) {
+  if (!confirm(`Delete "${name}"? This cannot be undone.`)) return;
+  try {
+    await api(`/api/admin/${type}/${id}`, { method: 'DELETE' });
+    showToast(`${name} deleted.`);
+    loadView();
+  } catch (err) {
+    showToast(err.message, 'error');
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════════════════════════════
+if (token) {
+  api('/api/auth/me').then(() => showAdmin()).catch(() => logout());
+}
+</script>
+</body>
+</html>

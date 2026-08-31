@@ -1,3 +1,9 @@
 node_modules/
 package-lock.json
 .freebuff/
+.env
+db/*.db
+db/*.db-journal
+db/*.db-wal
+db/*.db-shm
+remove-logo-bg.js

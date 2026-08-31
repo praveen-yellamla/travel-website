@@ -1,11 +1,19 @@
 {
-  "name": "voyager-travel-clone",
-  "version": "1.0.0",
+  "name": "asv-tours",
+  "version": "2.0.0",
   "private": true,
+  "description": "ASV TOURS — Premium Curated Journeys with Admin CMS",
   "scripts": {
-    "dev": "npx -y serve -s . -l 3000"
+    "dev": "node server.js",
+    "start": "node server.js",
+    "seed": "node db/seed.js"
   },
   "dependencies": {
+    "express": "^4.18.2",
+    "better-sqlite3": "^9.4.3",
+    "jsonwebtoken": "^9.0.2",
+    "bcryptjs": "^2.4.3",
+    "dotenv": "^16.3.1",
     "sharp": "^0.35.4"
   }
 }
