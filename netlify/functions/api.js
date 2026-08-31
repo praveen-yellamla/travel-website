@@ -68,22 +68,27 @@ async function tursoExec(sql, args = []) {
   }
 
   const data = await res.json();
-  const result = data.results?.[0]?.response;
+  const result = data.results?.[0];
   if (!result) throw new Error("No result from Turso");
 
-  if (result.type === "error") throw new Error(result.message);
+  if (result.type === "error") throw new Error(result.response?.message || "Unknown Turso error");
 
-  const cols = result.result?.columns || [];
-  const rows = (result.result?.rows || []).map((row) => {
+  // Turso v2 response: results[0].response.result has cols, rows, affected_row_count, last_insert_rowid
+  const resData = result.response?.result;
+  if (!resData) throw new Error("No result data from Turso");
+
+  const cols = resData.cols || [];
+  const colNames = cols.map((c) => c.name || c);
+  const rows = (resData.rows || []).map((row) => {
     const obj = {};
-    cols.forEach((col, i) => { obj[col] = row[i]?.value ?? row[i]; });
+    colNames.forEach((col, i) => { obj[col] = row[i]?.value ?? row[i]; });
     return obj;
   });
 
   return {
     rows,
-    rowsAffected: result.result?.rows_affected || 0,
-    lastInsertRowid: result.result?.last_insert_rowid || 0,
+    rowsAffected: resData.affected_row_count || 0,
+    lastInsertRowid: resData.last_insert_rowid || 0,
   };
 }
 
@@ -98,10 +103,13 @@ async function tursoExecMulti(sql) {
 
   const url = `${tursoUrl()}/v2/pipeline`;
   const body = {
-    requests: statements.map((sql) => ({
-      type: "execute",
-      stmt: { sql, args: [] },
-    })),
+    requests: [
+      ...statements.map((sql) => ({
+        type: "execute",
+        stmt: { sql, args: [] },
+      })),
+      { type: "close" },
+    ],
   };
 
   const res = await fetch(url, {
@@ -118,7 +126,12 @@ async function tursoExecMulti(sql) {
     throw new Error(`Turso HTTP ${res.status}: ${text}`);
   }
 
-  return await res.json();
+  const data = await res.json();
+  // Check for errors in any result
+  for (const r of data.results || []) {
+    if (r.type === "error") throw new Error(r.response?.message || "Turso multi-exec error");
+  }
+  return data;
 }
 
 // ═══════════════════════════════════════════════════════════════
