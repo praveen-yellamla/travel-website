@@ -81,7 +81,11 @@ async function tursoExec(sql, args = []) {
   const colNames = cols.map((c) => c.name || c);
   const rows = (resData.rows || []).map((row) => {
     const obj = {};
-    colNames.forEach((col, i) => { obj[col] = row[i]?.value ?? row[i]; });
+    colNames.forEach((col, i) => {
+      const cell = row[i];
+      if (!cell || cell.type === "null" || cell.value === undefined) obj[col] = null;
+      else obj[col] = cell.value;
+    });
     return obj;
   });
 
