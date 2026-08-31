@@ -135,13 +135,21 @@ exports.handler = async (event, context) => {
     // Seed on first invocation
     seedIfNeeded();
 
-    // Parse the API route — handle both rewritten and original paths
+    // Parse the API route — handle all possible path formats from Netlify
+    let rawPath = event.path || "/";
     let route = "/";
-    if (event.path.startsWith("/.netlify/functions/api")) {
-      route = event.path.slice("/.netlify/functions/api".length) || "/";
-    } else if (event.path.startsWith("/api")) {
-      route = event.path.slice("/api".length) || "/";
+    if (rawPath.startsWith("/.netlify/functions/api")) {
+      route = rawPath.slice("/.netlify/functions/api".length) || "/";
+    } else if (rawPath.startsWith("/api")) {
+      route = rawPath.slice("/api".length) || "/";
+    } else {
+      // Fallback: use the path as-is
+      route = rawPath;
     }
+    // Normalize: remove trailing slashes (except root), lowercase for matching safety
+    if (route.length > 1) route = route.replace(/\/+$/, "");
+
+    console.log(`[API] ${event.httpMethod} ${rawPath} -> route: ${route}`);
 
     const method = event.httpMethod;
     const body = parseBody(event);
@@ -213,7 +221,7 @@ exports.handler = async (event, context) => {
         destination: destination || "", category: category || "",
         travel_date: travel_date || "", travellers: travellers || 1,
         trip_type: trip_type || "", budget: budget || "", message: message || "",
-        status: "new", created_at: new Date().toISOString(),
+        status: "new", notes: "", created_at: new Date().toISOString(),
       };
       enquiries.push(enquiry);
       setAll("enquiries", enquiries);
@@ -356,19 +364,80 @@ exports.handler = async (event, context) => {
 
     // ─── ADMIN ENQUIRIES ───
     if (route === "/admin/enquiries" && method === "GET") {
-      return ok(getAll("enquiries").sort((a, b) => (b.id || 0) - (a.id || 0)));
+      let all = getAll("enquiries");
+      const qs = event.queryStringParameters || {};
+      // Search
+      if (qs.search) {
+        const q = qs.search.toLowerCase();
+        all = all.filter((e) =>
+          (e.full_name || "").toLowerCase().includes(q) ||
+          (e.email || "").toLowerCase().includes(q) ||
+          (e.phone || "").includes(q) ||
+          (e.destination || "").toLowerCase().includes(q) ||
+          (e.message || "").toLowerCase().includes(q)
+        );
+      }
+      // Filter by status
+      if (qs.status && qs.status !== "all") {
+        all = all.filter((e) => e.status === qs.status);
+      }
+      // Filter by destination
+      if (qs.destination && qs.destination !== "all") {
+        all = all.filter((e) => (e.destination || "").toLowerCase() === qs.destination.toLowerCase());
+      }
+      // Sort
+      const sortBy = qs.sort === "oldest" ? "asc" : "desc";
+      all.sort((a, b) => {
+        const da = new Date(a.created_at || 0).getTime();
+        const db = new Date(b.created_at || 0).getTime();
+        return sortBy === "asc" ? da - db : db - da;
+      });
+      // Pagination
+      const page = Math.max(1, parseInt(qs.page) || 1);
+      const limit = Math.min(100, Math.max(1, parseInt(qs.limit) || 20));
+      const total = all.length;
+      const totalPages = Math.ceil(total / limit);
+      const start = (page - 1) * limit;
+      const paged = all.slice(start, start + limit);
+      return ok({ data: paged, total, page, totalPages, limit });
+    }
+
+    // GET /admin/enquiries/stats
+    if (route === "/admin/enquiries/stats" && method === "GET") {
+      const all = getAll("enquiries");
+      const statuses = {};
+      all.forEach((e) => { statuses[e.status] = (statuses[e.status] || 0) + 1; });
+      const destinations = {};
+      all.forEach((e) => { if (e.destination) destinations[e.destination] = (destinations[e.destination] || 0) + 1; });
+      return ok({ total: all.length, byStatus: statuses, byDestination: destinations });
     }
 
     const enquiryMatch = route.match(/^\/admin\/enquiries\/(\d+)$/);
+    if (enquiryMatch && method === "GET") {
+      const id = parseInt(enquiryMatch[1]);
+      const all = getAll("enquiries");
+      const found = all.find((e) => e.id === id);
+      if (!found) return err(404, "Enquiry not found.");
+      return ok(found);
+    }
     if (enquiryMatch && method === "PUT") {
       const id = parseInt(enquiryMatch[1]);
       const all = getAll("enquiries");
       const idx = all.findIndex((e) => e.id === id);
       if (idx === -1) return err(404, "Enquiry not found.");
-      if (body.status) all[idx].status = body.status;
+      if (body.status !== undefined) all[idx].status = body.status;
+      if (body.notes !== undefined) all[idx].notes = body.notes;
       all[idx].updated_at = new Date().toISOString();
       setAll("enquiries", all);
-      return ok({ message: "Enquiry updated." });
+      return ok({ message: "Enquiry updated.", enquiry: all[idx] });
+    }
+    if (enquiryMatch && method === "DELETE") {
+      const id = parseInt(enquiryMatch[1]);
+      const all = getAll("enquiries");
+      const filtered = all.filter((e) => e.id !== id);
+      if (filtered.length === all.length) return err(404, "Enquiry not found.");
+      setAll("enquiries", filtered);
+      return ok({ message: "Enquiry deleted." });
     }
 
     // ─── ADMIN STATS ───

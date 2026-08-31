@@ -390,24 +390,87 @@ app.post('/api/enquiries', (req, res) => {
   }
 });
 
+app.get('/api/admin/enquiries/stats', authenticateToken, (req, res) => {
+  const db = getDb();
+  try {
+    const all = db.prepare('SELECT * FROM enquiries').all();
+    const statuses = {};
+    all.forEach(e => { statuses[e.status] = (statuses[e.status] || 0) + 1; });
+    const destinations = {};
+    all.forEach(e => { if (e.destination) destinations[e.destination] = (destinations[e.destination] || 0) + 1; });
+    res.json({ total: all.length, byStatus: statuses, byDestination: destinations });
+  } finally {
+    db.close();
+  }
+});
+
 app.get('/api/admin/enquiries', authenticateToken, (req, res) => {
   const db = getDb();
   try {
-    const enquiries = db.prepare('SELECT * FROM enquiries ORDER BY created_at DESC').all();
-    res.json(enquiries);
+    let sql = 'SELECT * FROM enquiries WHERE 1=1';
+    const params = [];
+    if (req.query.search) {
+      const q = '%' + req.query.search + '%';
+      sql += ' AND (full_name LIKE ? OR email LIKE ? OR phone LIKE ? OR destination LIKE ? OR message LIKE ?)';
+      params.push(q, q, q, q, q);
+    }
+    if (req.query.status && req.query.status !== 'all') {
+      sql += ' AND status = ?';
+      params.push(req.query.status);
+    }
+    if (req.query.destination && req.query.destination !== 'all') {
+      sql += ' AND LOWER(destination) = LOWER(?)';
+      params.push(req.query.destination);
+    }
+    sql += req.query.sort === 'oldest' ? ' ORDER BY created_at ASC' : ' ORDER BY created_at DESC';
+    const all = db.prepare(sql).all(...params);
+    const page = Math.max(1, parseInt(req.query.page) || 1);
+    const limit = Math.min(100, Math.max(1, parseInt(req.query.limit) || 20));
+    const total = all.length;
+    const totalPages = Math.ceil(total / limit);
+    const start = (page - 1) * limit;
+    res.json({ data: all.slice(start, start + limit), total, page, totalPages, limit });
+  } finally {
+    db.close();
+  }
+});
+
+app.get('/api/admin/enquiries/:id', authenticateToken, (req, res) => {
+  const db = getDb();
+  try {
+    const e = db.prepare('SELECT * FROM enquiries WHERE id = ?').get(req.params.id);
+    if (!e) return res.status(404).json({ error: 'Enquiry not found.' });
+    res.json(e);
   } finally {
     db.close();
   }
 });
 
 app.put('/api/admin/enquiries/:id', authenticateToken, (req, res) => {
-  const { status } = req.body;
-  if (!status) return res.status(400).json({ error: 'Status is required.' });
-
   const db = getDb();
   try {
-    db.prepare('UPDATE enquiries SET status = ? WHERE id = ?').run(status, req.params.id);
-    res.json({ message: 'Enquiry updated.' });
+    const existing = db.prepare('SELECT * FROM enquiries WHERE id = ?').get(req.params.id);
+    if (!existing) return res.status(404).json({ error: 'Enquiry not found.' });
+    const updates = [];
+    const values = [];
+    if (req.body.status !== undefined) { updates.push('status = ?'); values.push(req.body.status); }
+    if (req.body.notes !== undefined) { updates.push('notes = ?'); values.push(req.body.notes); }
+    if (updates.length === 0) return res.status(400).json({ error: 'No fields to update.' });
+    updates.push('updated_at = CURRENT_TIMESTAMP');
+    values.push(req.params.id);
+    db.prepare(`UPDATE enquiries SET ${updates.join(', ')} WHERE id = ?`).run(...values);
+    res.json({ message: 'Enquiry updated.', enquiry: db.prepare('SELECT * FROM enquiries WHERE id = ?').get(req.params.id) });
+  } finally {
+    db.close();
+  }
+});
+
+app.delete('/api/admin/enquiries/:id', authenticateToken, (req, res) => {
+  const db = getDb();
+  try {
+    const result = db.prepare('DELETE FROM enquiries WHERE id = ?').run(req.params.id);
+    if (result.changes === 0) return res.status(404).json({ error: 'Enquiry not found.' });
+    res.json({ message: 'Enquiry deleted.' });
   } finally {
     db.close();
   }

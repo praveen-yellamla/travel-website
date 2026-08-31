@@ -112,7 +112,9 @@ function initDb() {
       budget TEXT,
       message TEXT,
       status TEXT DEFAULT 'new',
-      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+      notes TEXT DEFAULT '',
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      updated_at DATETIME
     )
   `);
 
@@ -124,6 +126,10 @@ function initDb() {
       updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
     )
   `);
+
+  // Migration: add notes and updated_at to enquiries if missing
+  try { db.exec(`ALTER TABLE enquiries ADD COLUMN notes TEXT DEFAULT ''`); } catch(e) {}
+  try { db.exec(`ALTER TABLE enquiries ADD COLUMN updated_at DATETIME`); } catch(e) {}
 
   db.close();
   console.log('Database tables created successfully.');

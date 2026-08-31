@@ -258,6 +258,7 @@ let token = localStorage.getItem('adminToken');
 let currentView = 'dashboard';
 let currentEditType = '';
 let currentEditId = null;
+let _isInitializing = true; // Prevent logout() during init
 
 // ═══════════════════════════════════════════════════════════════
 // API HELPERS
@@ -271,7 +272,8 @@ async function api(url, options = {}) {
     if (!res.ok) throw new Error(data.error || 'Request failed');
     return data;
   } catch (err) {
-    if (err.message === 'Invalid or expired token.' || err.message === 'Access denied. No token provided.') {
+    // Only auto-logout on auth errors when NOT initializing
+    if (!_isInitializing && (err.message === 'Invalid or expired token.' || err.message === 'Access denied. No token provided.' || err.message === 'Unauthorized.')) {
       logout();
     }
     throw err;
@@ -295,7 +297,7 @@ function formatPrice(n) {
 // ═══════════════════════════════════════════════════════════════
 document.getElementById('loginForm').addEventListener('submit', async (e) => {
   e.preventDefault();
-  const email = document.getElementById('loginEmail').value;
+  const email = document.getElementById('loginEmail').value.trim();
   const password = document.getElementById('loginPassword').value;
   const btn = document.getElementById('loginBtn');
   const errEl = document.getElementById('loginError');
@@ -313,7 +315,10 @@ document.getElementById('loginForm').addEventListener('submit', async (e) => {
     localStorage.setItem('adminToken', token);
     showAdmin();
   } catch (err) {
-    errEl.textContent = err.message;
+    // Show friendly error message
+    let msg = err.message || 'Login failed. Please try again.';
+    if (msg === 'Access denied. No token provided.') msg = 'Login failed. Please check your credentials.';
+    errEl.textContent = msg;
     errEl.style.display = 'block';
   } finally {
     btn.disabled = false;
@@ -699,48 +704,190 @@ function getOfferForm(o, packages) {
 // ═══════════════════════════════════════════════════════════════
 // ENQUIRIES
 // ═══════════════════════════════════════════════════════════════
+let enquiryFilters = { search: '', status: 'all', destination: 'all', sort: 'newest', page: 1, limit: 20 };
+
 async function loadEnquiries(el) {
-  const enquiries = await api('/api/admin/enquiries');
+  const qs = new URLSearchParams();
+  if (enquiryFilters.search) qs.set('search', enquiryFilters.search);
+  if (enquiryFilters.status !== 'all') qs.set('status', enquiryFilters.status);
+  if (enquiryFilters.destination !== 'all') qs.set('destination', enquiryFilters.destination);
+  qs.set('sort', enquiryFilters.sort === 'oldest' ? 'oldest' : 'newest');
+  qs.set('page', enquiryFilters.page);
+  qs.set('limit', enquiryFilters.limit);
+
+  const [result, stats] = await Promise.all([
+    api(`/api/admin/enquiries?${qs}`),
+    api('/api/admin/enquiries/stats')
+  ]);
+  const { data: enquiries, total, page, totalPages } = result;
+
+  const dests = Object.keys(stats.byDestination || {}).sort();
+
   el.innerHTML = `
     <div class="page-header">
       <div>
         <h1>Enquiries</h1>
-        <p>Customer trip enquiries</p>
+        <p>${total} total enquiry${total !== 1 ? 'ies' : ''}</p>
       </div>
     </div>
+
+    <div class="data-card" style="margin-bottom:16px; padding:16px 20px; display:flex; gap:12px; flex-wrap:wrap; align-items:center;">
+      <input type="text" id="enqSearch" placeholder="Search name, email, phone, destination..." value="${enquiryFilters.search.replace(/"/g, '&quot;')}" style="flex:1; min-width:200px; padding:8px 12px; border:1px solid #ddd; border-radius:8px; font-size:14px;">
+      <select id="enqStatus" style="padding:8px 12px; border:1px solid #ddd; border-radius:8px; font-size:14px;">
+        <option value="all" ${enquiryFilters.status==='all'?'selected':''}>All Statuses</option>
+        <option value="new" ${enquiryFilters.status==='new'?'selected':''}>New</option>
+        <option value="contacted" ${enquiryFilters.status==='contacted'?'selected':''}>Contacted</option>
+        <option value="follow-up" ${enquiryFilters.status==='follow-up'?'selected':''}>Follow-up</option>
+        <option value="converted" ${enquiryFilters.status==='converted'?'selected':''}>Converted</option>
+        <option value="closed" ${enquiryFilters.status==='closed'?'selected':''}>Closed</option>
+      </select>
+      <select id="enqDest" style="padding:8px 12px; border:1px solid #ddd; border-radius:8px; font-size:14px;">
+        <option value="all" ${enquiryFilters.destination==='all'?'selected':''}>All Destinations</option>
+        ${dests.map(d => `<option value="${d}" ${enquiryFilters.destination===d?'selected':''}>${d}</option>`).join('')}
+      </select>
+      <select id="enqSort" style="padding:8px 12px; border:1px solid #ddd; border-radius:8px; font-size:14px;">
+        <option value="newest" ${enquiryFilters.sort==='newest'?'selected':''}>Newest First</option>
+        <option value="oldest" ${enquiryFilters.sort==='oldest'?'selected':''}>Oldest First</option>
+      </select>
+      <button onclick="enquiryFilters.page=1; loadEnquiries(document.getElementById('mainContent'))" class="btn" style="background:var(--c-primary); color:#fff; padding:8px 16px;">Search</button>
+    </div>
+
+    <div style="display:flex; gap:8px; margin-bottom:16px; flex-wrap:wrap;">
+      ${Object.entries(stats.byStatus || {}).map(([s, c]) => `<span class="badge badge-${s === 'new' ? 'new' : s === 'converted' ? 'active' : 'read'}" style="font-size:12px; cursor:pointer;" onclick="enquiryFilters.status='${s}'; enquiryFilters.page=1; loadEnquiries(document.getElementById('mainContent'))">${s}: ${c}</span>`).join('')}
+    </div>
+
     <div class="data-card">
       <table class="data-table">
-        <thead><tr><th>Name</th><th>Contact</th><th>Destination</th><th>Travelers</th><th>Budget</th><th>Date</th><th>Status</th><th>Actions</th></tr></thead>
+        <thead><tr><th>ID</th><th>Name</th><th>Contact</th><th>Destination</th><th>Travelers</th><th>Budget</th><th>Submitted</th><th>Status</th><th>Actions</th></tr></thead>
         <tbody>
-          ${enquiries.length === 0 ? '<tr><td colspan="8" class="table-empty">No enquiries yet.</td></tr>' : enquiries.map(e => `
-            <tr>
-              <td class="pkg-name">${e.full_name}</td>
+          ${enquiries.length === 0 ? '<tr><td colspan="9" class="table-empty">No enquiries found.</td></tr>' : enquiries.map(e => {
+            const dt = e.created_at ? new Date(e.created_at).toLocaleDateString('en-IN', { day:'2-digit', month:'short', year:'numeric' }) : '—';
+            const tm = e.created_at ? new Date(e.created_at).toLocaleTimeString('en-IN', { hour:'2-digit', minute:'2-digit' }) : '';
+            const badgeCls = e.status === 'new' ? 'new' : e.status === 'converted' ? 'active' : 'read';
+            return `<tr style="cursor:pointer;" onclick="openEnquiry(${e.id})">
+              <td style="font-size:12px; color:#888;">#${e.id}</td>
+              <td class="pkg-name">${e.full_name}${e.notes ? ' \u{1F4DD}' : ''}</td>
               <td style="font-size:13px;">${e.email || ''}<br>${e.phone || ''}</td>
-              <td>${e.destination || '—'}</td>
-              <td>${e.travellers || '—'}</td>
-              <td>${e.budget || '—'}</td>
-              <td style="font-size:13px;">${e.travel_date || '—'}</td>
-              <td><span class="badge badge-${e.status === 'new' ? 'new' : e.status === 'read' ? 'read' : 'active'}">${e.status}</span></td>
-              <td>
-                <select onchange="updateEnquiryStatus(${e.id}, this.value)" style="padding:4px 8px; border-radius:6px; border:1px solid #ddd; font-size:12px;">
+              <td>${e.destination || '\u2014'}</td>
+              <td>${e.travellers || '\u2014'}</td>
+              <td>${e.budget || '\u2014'}</td>
+              <td style="font-size:13px;">${dt}<br><span style="color:#888;">${tm}</span></td>
+              <td><span class="badge badge-${badgeCls}" style="font-size:11px;">${e.status}</span></td>
+              <td onclick="event.stopPropagation()">
+                <select onchange="updateEnquiryField(${e.id}, 'status', this.value)" style="padding:4px 8px; border-radius:6px; border:1px solid #ddd; font-size:12px;">
                   <option value="new" ${e.status==='new'?'selected':''}>New</option>
-                  <option value="read" ${e.status==='read'?'selected':''}>Read</option>
                   <option value="contacted" ${e.status==='contacted'?'selected':''}>Contacted</option>
+                  <option value="follow-up" ${e.status==='follow-up'?'selected':''}>Follow-up</option>
+                  <option value="converted" ${e.status==='converted'?'selected':''}>Converted</option>
                   <option value="closed" ${e.status==='closed'?'selected':''}>Closed</option>
                 </select>
               </td>
-            </tr>
-          `).join('')}
+            </tr>`;
+          }).join('')}
         </tbody>
       </table>
     </div>
+
+    ${totalPages > 1 ? `<div style="display:flex; justify-content:center; align-items:center; gap:8px; margin-top:16px;">
+      <button class="btn" onclick="enquiryFilters.page=Math.max(1,enquiryFilters.page-1); loadEnquiries(document.getElementById('mainContent'))" ${page<=1?'disabled style="opacity:0.5"':''}>\u2190 Prev</button>
+      <span style="font-size:14px; color:#666;">Page ${page} of ${totalPages}</span>
+      <button class="btn" onclick="enquiryFilters.page=Math.min(${totalPages},enquiryFilters.page+1); loadEnquiries(document.getElementById('mainContent'))" ${page>=totalPages?'disabled style="opacity:0.5"':''}>Next \u2192</button>
+    </div>` : ''}
+
+    <div id="enqModal" style="display:none; position:fixed; inset:0; z-index:200; background:rgba(0,0,0,.5); align-items:center; justify-content:center;" onclick="if(event.target===this) closeEnquiryModal()">
+      <div style="background:#fff; border-radius:16px; width:90%; max-width:640px; max-height:85vh; overflow-y:auto; padding:32px;">
+        <div id="enqModalContent"></div>
+      </div>
+    </div>
   `;
+
+  document.getElementById('enqSearch').addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') { enquiryFilters.search = e.target.value; enquiryFilters.page = 1; loadEnquiries(el); }
+  });
+  document.getElementById('enqStatus').addEventListener('change', (e) => { enquiryFilters.status = e.target.value; enquiryFilters.page = 1; loadEnquiries(el); });
+  document.getElementById('enqDest').addEventListener('change', (e) => { enquiryFilters.destination = e.target.value; enquiryFilters.page = 1; loadEnquiries(el); });
+  document.getElementById('enqSort').addEventListener('change', (e) => { enquiryFilters.sort = e.target.value; enquiryFilters.page = 1; loadEnquiries(el); });
 }
 
-async function updateEnquiryStatus(id, status) {
+async function updateEnquiryField(id, field, value) {
   try {
-    await api(`/api/admin/enquiries/${id}`, { method: 'PUT', body: JSON.stringify({ status }) });
-    showToast('Enquiry status updated.');
+    await api(`/api/admin/enquiries/${id}`, { method: 'PUT', body: JSON.stringify({ [field]: value }) });
+    showToast('Enquiry updated.');
+  } catch (err) {
+    showToast(err.message, 'error');
+  }
+}
+
+async function openEnquiry(id) {
+  const e = await api(`/api/admin/enquiries/${id}`);
+  const dt = e.created_at ? new Date(e.created_at).toLocaleString('en-IN', { day:'2-digit', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit' }) : '\u2014';
+  document.getElementById('enqModalContent').innerHTML = `
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:24px;">
+      <h2 style="margin:0; font-size:20px;">Enquiry #${e.id}</h2>
+      <button onclick="closeEnquiryModal()" style="background:none; border:none; font-size:24px; cursor:pointer; color:#888;">✕</button>
+    </div>
+    <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-bottom:24px;">
+      <div><label style="font-size:12px; color:#888; text-transform:uppercase;">Full Name</label><p style="margin:4px 0 0; font-weight:600;">${e.full_name}</p></div>
+      <div><label style="font-size:12px; color:#888; text-transform:uppercase;">Email</label><p style="margin:4px 0 0;">${e.email || '\u2014'}</p></div>
+      <div><label style="font-size:12px; color:#888; text-transform:uppercase;">Phone</label><p style="margin:4px 0 0;">${e.phone || '\u2014'}</p></div>
+      <div><label style="font-size:12px; color:#888; text-transform:uppercase;">Destination</label><p style="margin:4px 0 0; font-weight:600;">${e.destination || '\u2014'}</p></div>
+      <div><label style="font-size:12px; color:#888; text-transform:uppercase;">Category</label><p style="margin:4px 0 0;">${e.category || '\u2014'}</p></div>
+      <div><label style="font-size:12px; color:#888; text-transform:uppercase;">Travel Date</label><p style="margin:4px 0 0;">${e.travel_date || '\u2014'}</p></div>
+      <div><label style="font-size:12px; color:#888; text-transform:uppercase;">Travellers</label><p style="margin:4px 0 0;">${e.travellers || '\u2014'}</p></div>
+      <div><label style="font-size:12px; color:#888; text-transform:uppercase;">Trip Type</label><p style="margin:4px 0 0;">${e.trip_type || '\u2014'}</p></div>
+      <div><label style="font-size:12px; color:#888; text-transform:uppercase;">Budget</label><p style="margin:4px 0 0;">${e.budget || '\u2014'}</p></div>
+      <div><label style="font-size:12px; color:#888; text-transform:uppercase;">Submitted</label><p style="margin:4px 0 0;">${dt}</p></div>
+    </div>
+    ${e.message ? `<div style="margin-bottom:20px;"><label style="font-size:12px; color:#888; text-transform:uppercase;">Message</label><p style="margin:4px 0 0; background:#f8f8f8; padding:12px; border-radius:8px;">${e.message}</p></div>` : ''}
+
+    <div style="margin-bottom:20px;">
+      <label style="font-size:12px; color:#888; text-transform:uppercase; display:block; margin-bottom:6px;">Status</label>
+      <select id="enqModalStatus" style="padding:8px 12px; border:1px solid #ddd; border-radius:8px; font-size:14px; width:100%;">
+        <option value="new" ${e.status==='new'?'selected':''}>New</option>
+        <option value="contacted" ${e.status==='contacted'?'selected':''}>Contacted</option>
+        <option value="follow-up" ${e.status==='follow-up'?'selected':''}>Follow-up</option>
+        <option value="converted" ${e.status==='converted'?'selected':''}>Converted</option>
+        <option value="closed" ${e.status==='closed'?'selected':''}>Closed</option>
+      </select>
+    </div>
+
+    <div style="margin-bottom:24px;">
+      <label style="font-size:12px; color:#888; text-transform:uppercase; display:block; margin-bottom:6px;">Internal Notes</label>
+      <textarea id="enqModalNotes" rows="4" style="width:100%; padding:10px; border:1px solid #ddd; border-radius:8px; font-size:14px; resize:vertical;">${e.notes || ''}</textarea>
+    </div>
+
+    <div style="display:flex; gap:12px; justify-content:space-between;">
+      <button onclick="saveEnquiry(${e.id})" class="btn" style="background:var(--c-primary); color:#fff; padding:10px 24px;">Save Changes</button>
+      <button onclick="deleteEnquiry(${e.id}, '${e.full_name.replace(/'/g, "\\'")}')" class="btn" style="background:var(--c-danger); color:#fff; padding:10px 24px;">Delete Enquiry</button>
+    </div>
+  `;
+  document.getElementById('enqModal').style.display = 'flex';
+}
+
+function closeEnquiryModal() {
+  document.getElementById('enqModal').style.display = 'none';
+}
+
+async function saveEnquiry(id) {
+  const status = document.getElementById('enqModalStatus').value;
+  const notes = document.getElementById('enqModalNotes').value;
+  try {
+    await api(`/api/admin/enquiries/${id}`, { method: 'PUT', body: JSON.stringify({ status, notes }) });
+    showToast('Enquiry saved.');
+    closeEnquiryModal();
+    loadEnquiries(document.getElementById('mainContent'));
+  } catch (err) {
+    showToast(err.message, 'error');
+  }
+}
+
+async function deleteEnquiry(id, name) {
+  if (!confirm(`Delete enquiry from "${name}"? This cannot be undone.`)) return;
+  try {
+    await api(`/api/admin/enquiries/${id}`, { method: 'DELETE' });
+    showToast('Enquiry deleted.');
+    closeEnquiryModal();
+    loadEnquiries(document.getElementById('mainContent'));
   } catch (err) {
     showToast(err.message, 'error');
   }
@@ -902,11 +1049,22 @@ async function deleteItem(type, id, name) {
 }
 
 // ═══════════════════════════════════════════════════════════════
-// INIT
+// INIT — silently validate any stored token
 // ═══════════════════════════════════════════════════════════════
-if (token) {
-  api('/api/auth/me').then(() => showAdmin()).catch(() => logout());
-}
+(async function init() {
+  if (token) {
+    try {
+      await api('/api/auth/me');
+      showAdmin();
+    } catch (err) {
+      // Token is invalid/expired — clear it silently, show login form
+      token = null;
+      localStorage.removeItem('adminToken');
+      // Login page is already visible by default, no error shown
+    }
+  }
+  _isInitializing = false;
+})();
 </script>
 </body>
 </html>
