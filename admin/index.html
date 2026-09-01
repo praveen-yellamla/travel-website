@@ -502,10 +502,10 @@ function openNewPackage() {
 
 async function editPackage(id) {
   const packages = await api('/api/admin/packages');
-  const pkg = packages.find(p => p.id === id);
+  const pkg = packages.find(p => String(p.id) === String(id));
   if (!pkg) return;
   currentEditType = 'package';
-  currentEditId = id;
+  currentEditId = pkg.id;
   document.getElementById('modalTitle').textContent = 'Edit Package';
   document.getElementById('modalBody').innerHTML = getPackageForm(pkg);
   document.getElementById('editModal').classList.add('active');
@@ -596,38 +596,89 @@ function openNewDest() {
   document.getElementById('editModal').classList.add('active');
 }
 
+function previewDestImage(url) {
+  const preview = document.getElementById('destImagePreview');
+  if (!preview) return;
+  if (url && url.trim()) {
+    preview.style.display = 'block';
+    preview.innerHTML = `<img src="${url}" style="max-width:200px; max-height:120px; border-radius:8px; object-fit:cover; border:1px solid #eee;" onerror="this.parentElement.style.display='none'">`;
+  } else {
+    preview.style.display = 'none';
+    preview.innerHTML = '';
+  }
+}
+
+async function handleDestImageUpload(input) {
+  const file = input.files?.[0];
+  if (!file) return;
+  const progress = document.getElementById('uploadProgress');
+  if (progress) { progress.style.display = 'block'; progress.textContent = 'Uploading...'; }
+  try {
+    // Convert to base64
+    const reader = new FileReader();
+    const base64 = await new Promise((resolve, reject) => {
+      reader.onload = () => resolve(reader.result.split(',')[1]);
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+    // Upload via Netlify function
+    const result = await api('/api/upload-image', {
+      method: 'POST',
+      body: JSON.stringify({ image: base64, filename: file.name }),
+    });
+    // Set the URL in the input
+    const urlInput = document.getElementById('f_image_url');
+    if (urlInput) urlInput.value = result.url;
+    previewDestImage(result.url);
+    if (progress) progress.textContent = 'Upload complete!';
+    setTimeout(() => { if (progress) progress.style.display = 'none'; }, 2000);
+  } catch (err) {
+    if (progress) { progress.style.display = 'block'; progress.textContent = 'Upload failed: ' + err.message; }
+  }
+}
+
 async function editDest(id) {
   const dests = await api('/api/admin/destinations');
-  const d = dests.find(x => x.id === id);
+  const d = dests.find(x => String(x.id) === String(id));
   if (!d) return;
   currentEditType = 'destination';
-  currentEditId = id;
+  currentEditId = d.id;
   document.getElementById('modalTitle').textContent = 'Edit Destination';
   document.getElementById('modalBody').innerHTML = getDestForm(d);
   document.getElementById('editModal').classList.add('active');
 }
 
 function getDestForm(d) {
+  const isActive = d.is_active == 1 || d.is_active === '1';
+  const imgUrl = d.image_url || '';
   return `
     <div class="form-row">
-      <div class="form-group"><label>Name</label><input id="f_name" value="${d.name || ''}" required></div>
-      <div class="form-group"><label>Slug</label><input id="f_slug" value="${d.slug || ''}"></div>
+      <div class="form-group"><label>Name *</label><input id="f_name" value="${(d.name || '').replace(/"/g, '&quot;')}" required></div>
+      <div class="form-group"><label>Slug</label><input id="f_slug" value="${(d.slug || '').replace(/"/g, '&quot;')}"></div>
     </div>
     <div class="form-row-3">
       <div class="form-group"><label>Category</label>
         <select id="f_category"><option value="india" ${d.category==='india'?'selected':''}>India</option><option value="international" ${d.category==='international'?'selected':''}>International</option></select>
       </div>
-      <div class="form-group"><label>Price (₹)</label><input type="number" id="f_price" value="${d.price || ''}" required></div>
+      <div class="form-group"><label>Price (₹) *</label><input type="number" id="f_price" value="${d.price || ''}" required></div>
       <div class="form-group"><label>Offer Price (₹)</label><input type="number" id="f_offer_price" value="${d.offer_price || ''}"></div>
     </div>
     <div class="form-row">
-      <div class="form-group"><label>Country</label><input id="f_country" value="${d.country || ''}"></div>
-      <div class="form-group"><label>Duration</label><input id="f_duration" value="${d.duration || ''}" placeholder="3N/4D"></div>
+      <div class="form-group"><label>Country</label><input id="f_country" value="${(d.country || '').replace(/"/g, '&quot;')}"></div>
+      <div class="form-group"><label>Duration</label><input id="f_duration" value="${(d.duration || '').replace(/"/g, '&quot;')}" placeholder="3N/4D"></div>
     </div>
-    <div class="form-group"><label>Image URL</label><input id="f_image_url" value="${d.image_url || ''}"></div>
-    <div class="form-group"><label>Short Description</label><textarea id="f_short_desc" rows="2">${d.short_desc || ''}</textarea></div>
+    <div class="form-group"><label>Image URL</label><input id="f_image_url" value="${imgUrl.replace(/"/g, '&quot;')}" placeholder="https://images.unsplash.com/..." oninput="previewDestImage(this.value)"></div>
+    <div class="form-group" style="margin-top:4px;">
+      <label style="font-size:12px; color:#888;">Or upload image</label>
+      <input type="file" id="f_image_file" accept="image/*" onchange="handleDestImageUpload(this)" style="font-size:13px; padding:6px 0;">
+      <div id="uploadProgress" style="font-size:12px; color:#888; margin-top:4px; display:none;">Uploading...</div>
+    </div>
+    <div id="destImagePreview" style="margin:8px 0; ${imgUrl ? '' : 'display:none;'}">
+      <img src="${imgUrl}" style="max-width:200px; max-height:120px; border-radius:8px; object-fit:cover; border:1px solid #eee;" onerror="this.parentElement.style.display='none'">
+    </div>
+    <div class="form-group"><label>Short Description</label><textarea id="f_short_desc" rows="2">${(d.short_desc || '').replace(/</g, '&lt;')}</textarea></div>
     <div class="form-group"><label>Status</label>
-      <select id="f_is_active"><option value="1" ${d.is_active!==0?'selected':''}>Active</option><option value="0" ${d.is_active===0?'selected':''}>Inactive</option></select>
+      <select id="f_is_active"><option value="1" ${isActive?'selected':''}>Active</option><option value="0" ${!isActive?'selected':''}>Inactive</option></select>
     </div>
   `;
 }
@@ -680,10 +731,10 @@ async function openNewOffer() {
 
 async function editOffer(id) {
   const [offers, packages] = await Promise.all([api('/api/admin/offers'), api('/api/admin/packages')]);
-  const o = offers.find(x => x.id === id);
+  const o = offers.find(x => String(x.id) === String(id));
   if (!o) return;
   currentEditType = 'offer';
-  currentEditId = id;
+  currentEditId = o.id;
   document.getElementById('modalTitle').textContent = 'Edit Offer';
   document.getElementById('modalBody').innerHTML = getOfferForm(o, packages);
   document.getElementById('editModal').classList.add('active');
