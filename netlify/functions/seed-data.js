@@ -38,6 +38,7 @@ const DESTINATIONS = [
   { id: 18, name: 'Maldives', slug: 'maldives', category: 'international', country: 'Maldives', image_url: 'https://images.unsplash.com/photo-1514282401047-d79a71a590e8?w=800&q=80', short_desc: 'Luxury water villas, crystal lagoons, and underwater wonders.', price: 80000, duration: '4N/5D', is_active: 1 },
   { id: 19, name: 'Japan', slug: 'japan', category: 'international', country: 'Japan', image_url: 'https://images.unsplash.com/photo-1493976040374-85c8e12f0c0e?w=800&q=80', short_desc: 'Ancient temples, Mount Fuji, and modern Tokyo culture.', price: 145000, duration: '7N/8D', is_active: 1 },
   { id: 20, name: 'Switzerland', slug: 'switzerland', category: 'international', country: 'Switzerland', image_url: 'https://images.unsplash.com/photo-1530122037265-a5f1f91d3b99?w=800&q=80', short_desc: 'Swiss Alps, pristine lakes, and charming Alpine villages.', price: 185000, duration: '6N/7D', is_active: 1 },
+  { id: 21, name: 'Paris', slug: 'paris', category: 'international', country: 'France', image_url: 'https://images.unsplash.com/photo-1502602898657-3e91760cbb34?w=800&q=80', short_desc: 'Iconic Eiffel Tower, world-class art, and romantic riverside strolls.', price: 120000, duration: '5N/6D', is_active: 1 },
 ];
 
 const PACKAGES = [

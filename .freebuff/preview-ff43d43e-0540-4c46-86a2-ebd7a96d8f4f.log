@@ -1,0 +1,23 @@
+
+> voyager-travel-clone@1.0.0 dev
+> npx -y serve -s . -l 3000
+
+ INFO  Accepting connections at http://localhost:3000
+ HTTP  26/8/2026 12:26:10 pm ::1 GET /
+ HTTP  26/8/2026 12:26:10 pm ::1 Returned 200 in 119 ms
+ HTTP  26/8/2026 12:26:15 pm ::1 GET /
+ HTTP  26/8/2026 12:26:15 pm ::1 Returned 200 in 7 ms
+ HTTP  26/8/2026 12:26:19 pm ::1 GET /
+ HTTP  26/8/2026 12:26:19 pm ::1 Returned 200 in 7 ms
+ HTTP  26/8/2026 12:26:19 pm ::1 GET /
+ HTTP  26/8/2026 12:26:19 pm ::1 Returned 200 in 3 ms
+ HTTP  26/8/2026 12:26:19 pm ::1 GET /script.js
+ HTTP  26/8/2026 12:26:19 pm ::1 GET /styles.css
+ HTTP  26/8/2026 12:26:19 pm ::1 Returned 304 in 15 ms
+ HTTP  26/8/2026 12:26:19 pm ::1 Returned 304 in 78 ms
+ HTTP  26/8/2026 12:26:39 pm ::1 GET /
+ HTTP  26/8/2026 12:26:39 pm ::1 Returned 304 in 5 ms
+ HTTP  26/8/2026 12:26:40 pm ::1 GET /styles.css
+ HTTP  26/8/2026 12:26:40 pm ::1 GET /script.js
+ HTTP  26/8/2026 12:26:40 pm ::1 Returned 304 in 10 ms
+ HTTP  26/8/2026 12:26:40 pm ::1 Returned 304 in 12 ms

@@ -81,6 +81,12 @@
   status = 200
   force = true
 
+[[redirects]]
+  from = "/privacy-policy"
+  to = "/pages/privacy-policy.html"
+  status = 200
+  force = true
+
 # ═══════════════════════════════════════════════════════════
 # Journey detail pages (SPA routing via index.html)
 # ═══════════════════════════════════════════════════════════

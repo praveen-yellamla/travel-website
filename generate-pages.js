@@ -99,14 +99,22 @@ const footer = `
           <ul>
             <li><a href="/why-us">Why Us</a></li>
             <li><a href="/contact">Contact</a></li>
-            <li><a href="/contact">Privacy Policy</a></li>
-            <li><a href="/contact">Cancellation</a></li>
+            <li><a href="/privacy-policy">Privacy Policy</a></li>
+            <li><a href="/contact">Cancellation Policy</a></li>
+          </ul>
+        </div>
+        <div class="footer-col">
+          <h6>Contact Us</h6>
+          <ul>
+            <li><a href="tel:8886648494">📞 88866 48494</a></li>
+            <li><a href="mailto:hello@asvtours.com">✉ hello@asvtours.com</a></li>
+            <li style="line-height:1.5;">Flat No: 502, Nagarjuna Paradise,<br>Sai Baba Road, Chaitanya Puri 3rd Line,<br>Guntur, Andhra Pradesh — 522007</li>
           </ul>
         </div>
       </div>
       <div class="footer-bottom">
         <div>© 2026 ASV TOURS — All rights reserved.</div>
-        <div class="mono">CIN · U00000XX2026PTC000000 · PAN · AAAAA0000A</div>
+        <div class="mono">asvtours.com · CIN · U00000XX2026PTC000000 · PAN · AAAAA0000A</div>
       </div>
     </div>
   </footer>`;
@@ -430,7 +438,7 @@ const pages = [
             </div>
             <div>
               <div class="ci-label">Phone</div>
-              <div class="ci-value">+91 90000 00000</div>
+              <div class="ci-value"><a href="tel:8886648494">88866 48494</a></div>
             </div>
           </div>
           <div class="ci-item">
@@ -439,7 +447,7 @@ const pages = [
             </div>
             <div>
               <div class="ci-label">WhatsApp</div>
-              <div class="ci-value">+91 90000 00000</div>
+              <div class="ci-value"><a href="https://wa.me/918886648494">+91 88866 48494</a></div>
             </div>
           </div>
           <div class="ci-item">
@@ -448,7 +456,7 @@ const pages = [
             </div>
             <div>
               <div class="ci-label">Office</div>
-              <div class="ci-value">123 Example Street, Banjara Hills<br>Hyderabad – 500034, Telangana</div>
+              <div class="ci-value">Flat No: 502, Nagarjuna Paradise,<br>Sai Baba Road, Chaitanya Puri 3rd Line,<br>Guntur, Andhra Pradesh — 522007</div>
             </div>
           </div>
         </div>
@@ -751,6 +759,109 @@ const pages = [
     });
   }
   </script>`
+  },
+
+  // ── PRIVACY POLICY ──
+  {
+    file: 'privacy-policy.html',
+    title: 'Privacy Policy — ASV TOURS',
+    activePage: 'privacy-policy',
+    content: `
+  <section class="page-hero page-hero-privacypolicy">
+    <div class="container">
+      <div class="page-hero-eyebrow"><span class="dot"></span> Legal</div>
+      <h1 class="page-hero-title">Privacy <em>Policy.</em></h1>
+      <p class="page-hero-sub">How we collect, use, and protect your personal information when you use ASV TOURS services.</p>
+    </div>
+  </section>
+
+  <section class="legal-content page-body-section">
+    <div class="container" style="max-width:800px;">
+      <div class="legal-section">
+        <h2>1. Information We Collect</h2>
+        <p>When you submit an enquiry through our website, we collect the following personal information:</p>
+        <ul>
+          <li>Full name</li>
+          <li>Email address</li>
+          <li>Phone number</li>
+          <li>Destination preferences</li>
+          <li>Travel dates and budget</li>
+          <li>Number of travellers</li>
+          <li>Any additional requirements you provide</li>
+        </ul>
+        <p>We also collect standard web analytics data (page views, referral sources, device type) to improve our services.</p>
+      </div>
+
+      <div class="legal-section">
+        <h2>2. How We Use Your Information</h2>
+        <p>We use your personal information solely to:</p>
+        <ul>
+          <li>Respond to your travel enquiry and provide personalised trip recommendations</li>
+          <li>Communicate with you about your travel plans</li>
+          <li>Process bookings and travel arrangements</li>
+          <li>Send occasional updates about ASV TOURS offers (only if you opt in)</li>
+        </ul>
+        <p>We do <strong>not</strong> sell, rent, or share your personal information with third parties for marketing purposes.</p>
+      </div>
+
+      <div class="legal-section">
+        <h2>3. Data Storage & Security</h2>
+        <p>Your data is stored securely in our production database. We implement appropriate technical and organisational measures to protect your personal information against unauthorised access, alteration, disclosure, or destruction.</p>
+        <p>However, no method of transmission over the Internet is 100% secure. While we strive to protect your data, we cannot guarantee its absolute security.</p>
+      </div>
+
+      <div class="legal-section">
+        <h2>4. Third-Party Services</h2>
+        <p>We may use third-party services for:</p>
+        <ul>
+          <li><strong>Website hosting:</strong> Netlify</li>
+          <li><strong>Database:</strong> Turso</li>
+          <li><strong>Analytics:</strong> Standard web server logs</li>
+        </ul>
+        <p>These services have their own privacy policies governing how they handle data.</p>
+      </div>
+
+      <div class="legal-section">
+        <h2>5. Cookies</h2>
+        <p>Our website uses minimal cookies necessary for basic functionality (session management, preferences). We do not use advertising or tracking cookies.</p>
+      </div>
+
+      <div class="legal-section">
+        <h2>6. Your Rights</h2>
+        <p>You have the right to:</p>
+        <ul>
+          <li>Request access to the personal data we hold about you</li>
+          <li>Request correction of inaccurate data</li>
+          <li>Request deletion of your data</li>
+          <li>Opt out of marketing communications at any time</li>
+        </ul>
+        <p>To exercise any of these rights, please contact us at <a href="mailto:hello@asvtours.com">hello@asvtours.com</a>.</p>
+      </div>
+
+      <div class="legal-section">
+        <h2>7. Children's Privacy</h2>
+        <p>Our services are not directed to individuals under the age of 18. We do not knowingly collect personal information from children.</p>
+      </div>
+
+      <div class="legal-section">
+        <h2>8. Changes to This Policy</h2>
+        <p>We may update this privacy policy from time to time. Any changes will be posted on this page with an updated revision date. We encourage you to review this policy periodically.</p>
+      </div>
+
+      <div class="legal-section">
+        <h2>9. Contact Us</h2>
+        <p>If you have any questions about this privacy policy, please contact us:</p>
+        <ul>
+          <li><strong>Email:</strong> <a href="mailto:hello@asvtours.com">hello@asvtours.com</a></li>
+          <li><strong>Phone:</strong> <a href="tel:8886648494">88866 48494</a></li>
+          <li><strong>Address:</strong> Flat No: 502, Nagarjuna Paradise, Sai Baba Road, Chaitanya Puri 3rd Line, Guntur, Andhra Pradesh — 522007</li>
+        </ul>
+      </div>
+
+      <p class="legal-updated">Last updated: September 2026</p>
+    </div>
+  </section>
+  `
   }
 ];
 

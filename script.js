@@ -1294,7 +1294,7 @@ function renderJourneyDetail(j) {
                 <li><a href="${contactUrl}">Plan a Trip</a></li>
                 <li><a href="#">hello@asvtours.com</a></li>
                 <li><a href="#">+91 90000 00000</a></li>
-                <li><a href="#">Privacy Policy</a></li>
+                <li><a href="/privacy-policy">Privacy Policy</a></li>
               </ul>
             </div>
           </div>

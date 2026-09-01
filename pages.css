@@ -75,3 +75,47 @@
     padding: 60px 0;
   }
 }
+
+/* ── Legal Content (Privacy Policy) ── */
+.legal-content h2 {
+  font-family: var(--ff-serif);
+  font-size: 24px;
+  font-weight: 500;
+  color: var(--c-text);
+  margin: 32px 0 12px;
+}
+.legal-content p {
+  font-size: 15px;
+  line-height: 1.7;
+  color: var(--c-text-muted);
+  margin-bottom: 12px;
+}
+.legal-content ul {
+  margin: 8px 0 16px 20px;
+  list-style: disc;
+}
+.legal-content li {
+  font-size: 15px;
+  line-height: 1.7;
+  color: var(--c-text-muted);
+  margin-bottom: 4px;
+}
+.legal-content a {
+  color: var(--c-accent);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.legal-content a:hover {
+  color: var(--c-accent-dark);
+}
+.legal-section {
+  margin-bottom: 8px;
+}
+.legal-updated {
+  margin-top: 40px;
+  padding-top: 20px;
+  border-top: 1px solid var(--c-border);
+  font-style: italic;
+  color: var(--c-text-light);
+  font-size: 13px;
+}

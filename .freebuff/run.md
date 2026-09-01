@@ -1,21 +1,41 @@
-# Run Doc — NEXTRIP Clone
+# ASV TOURS — Dev Server Run Doc
 
-## Reproduce Artifacts
+## Prerequisites
 
-No `.env` or build artifacts needed — this is a plain static site (HTML + CSS + JS).
+1. Install dependencies:
+   ```
+   npm install
+   ```
 
-Dependencies: none (uses `npx serve` with no local install required).
+2. Create `.env` file (copy from main checkout or create manually):
+   ```
+   PORT=3000
+   JWT_SECRET=asvtours-secret-2026
+   ```
 
-## How to Run
+3. Seed the database (first time only):
+   ```
+   node db/seed.js
+   ```
 
-```bash
-npx -y serve -s . -l 3000
+## Start the Server
+
+Run detached on Windows using PowerShell:
+```
+powershell -NoProfile -Command "(Start-Process -FilePath 'npm.cmd' -ArgumentList 'run','dev' -RedirectStandardOutput 'C:\projects\travel_website\.freebuff\preview-5cb2d5df-d7a9-48db-8a29-708527d8a2a2.log' -RedirectStandardError 'C:\projects\travel_website\.freebuff\preview-5cb2d5df-d7a9-48db-8a29-708527d8a2a2.log.err' -WindowStyle Hidden -PassThru).Id"
 ```
 
-Or via the npm script:
-
-```bash
+Or simply:
+```
 npm run dev
 ```
 
-This starts a static file server on port 3000 serving the project root.
+The server starts Express on port 3000, serving:
+- Public website at `/`
+- Admin panel at `/admin`
+- API at `/api/*`
+
+## Default Admin Credentials
+
+- Email: `admin@asvtours.com`
+- Password: `admin123`

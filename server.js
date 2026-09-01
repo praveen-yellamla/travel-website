@@ -547,7 +547,8 @@ const pageRoutes = {
   '/why-us': 'pages/why-us.html',
   '/services': 'pages/services.html',
   '/contact': 'pages/contact.html',
-  '/plan-your-trip': 'pages/plan-your-trip.html'
+  '/plan-your-trip': 'pages/plan-your-trip.html',
+  '/privacy-policy': 'pages/privacy-policy.html'
 };
 
 for (const [route, file] of Object.entries(pageRoutes)) {
