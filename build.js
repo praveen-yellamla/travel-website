@@ -1,8 +1,6 @@
 #!/usr/bin/env node
 /**
- * Netlify build script — ensures DB is seeded and usable.
- * If the DB already has packages, skip re-seeding.
- * If empty or missing, run the full seed.
+ * Netlify build script — ensures DB is seeded and pages are generated.
  */
 require('dotenv').config({ path: require('path').join(__dirname, '.env') });
 const { getDb, initDb } = require('./db/database');
@@ -19,17 +17,25 @@ if (count > 0) {
   console.log(`✅ Database already seeded with ${count} packages. Skipping seed.`);
 } else {
   console.log('Database empty — running full seed...');
-  // Run the original seed script
   db.close();
   require('./db/seed.js');
-  process.exit(0);
+  // Re-open after seed
+  const { getDb: getDb2 } = require('./db/database');
+  const db2 = getDb2();
+  const c2 = db2.prepare('SELECT COUNT(*) as c FROM packages').get().c;
+  console.log(`  Seeded ${c2} packages.`);
+  db2.close();
 }
 
 // Verify DB is healthy
-const settings = db.prepare('SELECT COUNT(*) as c FROM settings').get();
-const destinations = db.prepare('SELECT COUNT(*) as c FROM destinations').get();
-console.log(`  Settings: ${settings.c} entries`);
-console.log(`  Destinations: ${destinations.c} entries`);
+const settingsCount = db.prepare('SELECT COUNT(*) as c FROM settings').get().c;
+const destCount = db.prepare('SELECT COUNT(*) as c FROM destinations').get().c;
+console.log(`  Settings: ${settingsCount} entries`);
+  console.log(`  Destinations: ${destCount} entries`);
 
 db.close();
 console.log('\n✅ Build complete — database is healthy.');
+
+// Generate static pages
+console.log('\n📄 Generating pages...');
+require('./generate-pages.js');

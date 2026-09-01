@@ -967,8 +967,15 @@ const TRIP_ENQUIRY_URL = null; // e.g. 'https://forms.example.com/asvtours-enqui
 
 // ── Routing ──
 function getRoute() {
+  // Support both hash-based (#/journeys/goa) and path-based (/journeys/goa)
   const hash = window.location.hash || '';
-  return hash.replace(/^#/, '');
+  if (hash.startsWith('#/')) return hash.replace(/^#/, '');
+  // Check path-based routing
+  const path = window.location.pathname;
+  if (path.startsWith('/journeys/') || path === '/plan-your-trip' || path.startsWith('/plan-your-trip')) {
+    return path;
+  }
+  return '';
 }
 
 function navigateTo(path) {
@@ -983,7 +990,7 @@ function handleRoute() {
 
   // If external enquiry URL is set, redirect there
   if (route === '/plan-your-trip' && TRIP_ENQUIRY_URL) {
-    const params = new URLSearchParams(window.location.hash.split('?')[1] || '');
+    const params = new URLSearchParams(window.location.search || window.location.hash.split('?')[1] || '');
     window.location.href = TRIP_ENQUIRY_URL + (params.toString() ? '?' + params.toString() : '');
     return;
   }
@@ -999,15 +1006,21 @@ function handleRoute() {
       window.scrollTo(0, 0);
       document.title = journey.title + ' — ASV TOURS';
     } else {
-      navigateTo('');
+      window.location.href = '/';
     }
   } else if (route === '/plan-your-trip' || route.startsWith('/plan-your-trip')) {
     if (mainSite) mainSite.style.display = 'none';
     if (detailPage) { detailPage.style.display = 'none'; detailPage.innerHTML = ''; }
     if (enquiryPage) enquiryPage.style.display = 'block';
-    // Parse destination from hash params
-    const destMatch = route.match(/\/plan-your-trip\?dest=(.+)/);
-    const preselectedDest = destMatch ? decodeURIComponent(destMatch[1]) : '';
+    // Parse destination from query params or hash params
+    let preselectedDest = '';
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.has('dest')) {
+      preselectedDest = urlParams.get('dest');
+    } else {
+      const hashParams = new URLSearchParams(window.location.hash.split('?')[1] || '');
+      if (hashParams.has('dest')) preselectedDest = hashParams.get('dest');
+    }
     renderEnquiryPage(preselectedDest);
     window.scrollTo(0, 0);
     document.title = 'Plan Your Trip — ASV TOURS';
@@ -1021,6 +1034,7 @@ function handleRoute() {
 }
 
 window.addEventListener('hashchange', handleRoute);
+window.addEventListener('popstate', handleRoute);
 window.addEventListener('DOMContentLoaded', handleRoute);
 
 // ── Journey Detail Page Renderer ──
@@ -1068,18 +1082,18 @@ function renderJourneyDetail(j) {
       <header class="jd-header">
         <div class="jd-header-inner">
           <div class="jd-header-left">
-            <a href="#" class="jd-back-link" onclick="window.location.hash=''; return false;">
+            <a href="/" class="jd-back-link">
               <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M13 7H1m0 0l6-6M1 7l6 6" stroke="currentColor" stroke-width="1.5"/></svg>
               Back to Journeys
             </a>
-            <a href="#" onclick="window.location.hash=''; return false;">
-              <img src="assets/asv-tours-logo.png" alt="ASV TOURS" class="jd-header-logo">
+            <a href="/">
+              <img src="/assets/asv-tours-logo.png" alt="ASV TOURS" class="jd-header-logo">
             </a>
           </div>
           <nav class="jd-header-nav" id="jdNav">
-            <a href="#" onclick="window.location.hash=''; return false;">Destinations</a>
-            <a href="#" onclick="window.location.hash=''; return false;">Packages</a>
-            <a href="#" onclick="window.location.hash='#contact'; return false;">Contact</a>
+            <a href="/destinations">Destinations</a>
+            <a href="/packages">Packages</a>
+            <a href="/contact">Contact</a>
             <a href="${contactUrl}" class="jd-header-cta">Plan a Trip</a>
           </nav>
           <button class="jd-menu-toggle" id="jdMenuToggle" aria-label="Toggle menu">
@@ -1262,16 +1276,16 @@ function renderJourneyDetail(j) {
         <div class="jd-footer-inner">
           <div class="jd-footer-grid">
             <div>
-              <img src="assets/asv-tours-logo.png" alt="ASV TOURS" class="jd-footer-logo">
+              <img src="/assets/asv-tours-logo.png" alt="ASV TOURS" class="jd-footer-logo">
               <p class="jd-footer-desc">Handpicked domestic & international journeys with stays, travel and sightseeing included. Planning trips since 2026.</p>
             </div>
             <div class="jd-footer-col">
               <h6>Explore</h6>
               <ul>
-                <li><a href="#" onclick="window.location.hash=''; return false;">Destinations</a></li>
-                <li><a href="#" onclick="window.location.hash=''; return false;">Packages</a></li>
-                <li><a href="#" onclick="window.location.hash=''; return false;">Honeymoons</a></li>
-                <li><a href="#" onclick="window.location.hash=''; return false;">Family Trips</a></li>
+                <li><a href="/destinations">Destinations</a></li>
+                <li><a href="/packages">Packages</a></li>
+                <li><a href="/packages">Honeymoons</a></li>
+                <li><a href="/packages">Family Trips</a></li>
               </ul>
             </div>
             <div class="jd-footer-col">
@@ -1320,18 +1334,18 @@ function renderEnquiryPage(preselectedDest) {
       <header class="enquiry-header">
         <div class="enquiry-header-inner">
           <div class="enquiry-header-left">
-            <a href="#" class="enquiry-back-link" onclick="window.location.hash=''; return false;">
+            <a href="/" class="enquiry-back-link">
               <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M13 7H1m0 0l6-6M1 7l6 6" stroke="currentColor" stroke-width="1.5"/></svg>
               Back
             </a>
-            <a href="#" onclick="window.location.hash=''; return false;">
-              <img src="assets/asv-tours-logo.png" alt="ASV TOURS" class="enquiry-header-logo">
+            <a href="/">
+              <img src="/assets/asv-tours-logo.png" alt="ASV TOURS" class="enquiry-header-logo">
             </a>
           </div>
           <nav style="display:flex;align-items:center;gap:24px;">
-            <a href="#" onclick="window.location.hash=''; return false;" style="font-size:13px;font-weight:500;color:var(--c-text-muted);">Destinations</a>
-            <a href="#packages" onclick="window.location.hash=''; return false;" style="font-size:13px;font-weight:500;color:var(--c-text-muted);">Packages</a>
-            <a href="#" onclick="window.location.hash=''; return false;" style="font-size:13px;font-weight:500;color:var(--c-text-muted);">Contact</a>
+            <a href="/destinations" style="font-size:13px;font-weight:500;color:var(--c-text-muted);">Destinations</a>
+            <a href="/packages" style="font-size:13px;font-weight:500;color:var(--c-text-muted);">Packages</a>
+            <a href="/contact" style="font-size:13px;font-weight:500;color:var(--c-text-muted);">Contact</a>
           </nav>
         </div>
       </header>
@@ -1497,7 +1511,7 @@ function renderEnquiryPage(preselectedDest) {
 
       <footer class="enquiry-footer">
         <div class="enquiry-footer-inner">
-          <img src="assets/asv-tours-logo.png" alt="ASV TOURS" class="enquiry-footer-logo">
+          <img src="/assets/asv-tours-logo.png" alt="ASV TOURS" class="enquiry-footer-logo">
           <div>© 2026 ASV TOURS — All rights reserved.</div>
         </div>
       </footer>

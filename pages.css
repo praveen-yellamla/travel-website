@@ -1,0 +1,77 @@
+/* ═══════════════════════════════════════════════════════════════════════════
+   PAGES.CSS — Shared styles for generated pages (destinations, packages, etc.)
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* ── Page Hero (all pages except homepage) ── */
+.page-hero {
+  position: relative;
+  padding: 180px 0 80px;
+  background: var(--c-dark);
+  overflow: hidden;
+}
+.page-hero::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(ellipse at 20% 50%, rgba(181,138,74,.08) 0%, transparent 60%);
+}
+.page-hero-eyebrow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--ff-mono);
+  font-size: 11px;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  color: var(--c-accent);
+  margin-bottom: 20px;
+}
+.page-hero-title {
+  font-family: var(--ff-serif);
+  font-size: clamp(42px, 6vw, 72px);
+  font-weight: 400;
+  line-height: 1.08;
+  color: #fff;
+  margin-bottom: 20px;
+}
+.page-hero-title em {
+  font-style: italic;
+  color: var(--c-accent);
+}
+.page-hero-sub {
+  font-size: 17px;
+  line-height: 1.6;
+  color: rgba(255,255,255,.65);
+  max-width: 560px;
+}
+
+/* ── Page Body ── */
+.page-body-section {
+  padding: 80px 0;
+}
+
+/* ── Active nav link ── */
+.nav-link.active {
+  color: var(--c-text) !important;
+  position: relative;
+}
+.nav-link.active::after {
+  content: '';
+  position: absolute;
+  bottom: -4px;
+  left: 0;
+  right: 0;
+  height: 1.5px;
+  background: var(--c-accent);
+  border-radius: 1px;
+}
+
+/* ── Mobile nav fix for pages ── */
+@media (max-width: 768px) {
+  .page-hero {
+    padding: 160px 0 60px;
+  }
+  .page-body-section {
+    padding: 60px 0;
+  }
+}

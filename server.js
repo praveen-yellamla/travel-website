@@ -31,6 +31,9 @@ app.use('/admin', express.static(path.join(__dirname, 'admin')));
 // Serve public website CSS and JS
 app.use('/styles.css', express.static(path.join(__dirname, 'styles.css')));
 app.use('/script.js', express.static(path.join(__dirname, 'script.js')));
+app.use('/pages.css', express.static(path.join(__dirname, 'pages.css')));
+app.use('/script-pages.js', express.static(path.join(__dirname, 'script-pages.js')));
+app.use('/pages', express.static(path.join(__dirname, 'pages')));
 
 // ═══════════════════════════════════════════════════════════════
 // AUTH MIDDLEWARE
@@ -536,6 +539,24 @@ app.get('/admin/*', (req, res) => {
 });
 
 // ═══════════════════════════════════════════════════════════════
+// SERVE SEPARATE PAGES
+// ═══════════════════════════════════════════════════════════════
+const pageRoutes = {
+  '/destinations': 'pages/destinations.html',
+  '/packages': 'pages/packages.html',
+  '/why-us': 'pages/why-us.html',
+  '/services': 'pages/services.html',
+  '/contact': 'pages/contact.html',
+  '/plan-your-trip': 'pages/plan-your-trip.html'
+};
+
+for (const [route, file] of Object.entries(pageRoutes)) {
+  app.get(route, (req, res) => {
+    res.sendFile(path.join(__dirname, file));
+  });
+}
+
+// ═══════════════════════════════════════════════════════════════
 // SERVE PUBLIC WEBSITE (SPA fallback)
 // ═══════════════════════════════════════════════════════════════
 app.get('*', (req, res) => {
@@ -547,7 +568,7 @@ app.get('*', (req, res) => {
   if (fs.existsSync(filePath) && fs.statSync(filePath).isFile()) {
     return res.sendFile(filePath);
   }
-  // SPA fallback
+  // SPA fallback for journeys and homepage
   res.sendFile(path.join(__dirname, 'index.html'));
 });
 
