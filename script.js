@@ -1686,21 +1686,20 @@ document.querySelectorAll('.dest-type-tab').forEach(tab => {
 
 // ── Packages (featured subset) ──
 let featuredPackages = [
-  { num: '01', title: 'Goa Beach Escape', where: 'North Goa · South Goa', img: 'https://images.unsplash.com/photo-1512343879784-a960bf40e7f2?w=800&q=80', details: ['3N/4D', 'Max 10', 'Easy', 'Oct — Mar'], price: '₹6,000', slug: 'goa' },
-  { num: '02', title: 'Kerala Backwater Bliss', where: 'Kochi · Munnar · Alleppey', img: 'https://images.unsplash.com/photo-1602216056096-3b40cc0c9944?w=800&q=80', details: ['5N/6D', 'Max 8', 'Easy', 'Sep — Mar'], price: '₹11,000', slug: 'kerala' },
-  { num: '03', title: 'Royal Rajasthan Trail', where: 'Jaipur · Jodhpur · Jaisalmer', img: 'https://images.unsplash.com/photo-1524492412937-b28074a5d7da?w=800&q=80', details: ['5N/6D', 'Max 8', 'Easy', 'Oct — Mar'], price: '₹18,500', slug: 'rajasthan' },
-  { num: '04', title: 'Thailand — Land of Smiles', where: 'Bangkok · Chiang Mai · Phuket', img: 'https://images.unsplash.com/photo-1528181304800-259b08848526?w=800&q=80', details: ['4N/5D', 'Max 10', 'Easy', 'Nov — Mar'], price: '₹40,000', slug: 'thailand' },
-  { num: '05', title: 'Japan — Rising Sun', where: 'Tokyo · Kyoto · Osaka', img: 'https://images.unsplash.com/photo-1493976040374-85c8e12f0c0e?w=800&q=80', details: ['7N/8D', 'Max 10', 'Easy', 'Mar — May'], price: '₹1,45,000', slug: 'japan' },
-  { num: '06', title: 'Maldives — Turquoise Dreams', where: 'Malé · Resort Island', img: 'https://images.unsplash.com/photo-1514282401047-d79a71a590e8?w=800&q=80', details: ['4N/5D', 'Max 4', 'Easy', 'Nov — Apr'], price: '₹80,000', slug: 'maldives' }
+  { title: 'Goa Beach Escape', where: 'North Goa · South Goa', img: 'https://images.unsplash.com/photo-1512343879784-a960bf40e7f2?w=800&q=80', details: ['3N/4D', 'Max 10', 'Easy', 'Oct — Mar'], price: '₹6,000', slug: 'goa' },
+  { title: 'Kerala Backwater Bliss', where: 'Kochi · Munnar · Alleppey', img: 'https://images.unsplash.com/photo-1602216056096-3b40cc0c9944?w=800&q=80', details: ['5N/6D', 'Max 8', 'Easy', 'Sep — Mar'], price: '₹11,000', slug: 'kerala' },
+  { title: 'Royal Rajasthan Trail', where: 'Jaipur · Jodhpur · Jaisalmer', img: 'https://images.unsplash.com/photo-1524492412937-b28074a5d7da?w=800&q=80', details: ['5N/6D', 'Max 8', 'Easy', 'Oct — Mar'], price: '₹18,500', slug: 'rajasthan' },
+  { title: 'Thailand — Land of Smiles', where: 'Bangkok · Chiang Mai · Phuket', img: 'https://images.unsplash.com/photo-1528181304800-259b08848526?w=800&q=80', details: ['4N/5D', 'Max 10', 'Easy', 'Nov — Mar'], price: '₹40,000', slug: 'thailand' },
+  { title: 'Japan — Rising Sun', where: 'Tokyo · Kyoto · Osaka', img: 'https://images.unsplash.com/photo-1493976040374-85c8e12f0c0e?w=800&q=80', details: ['7N/8D', 'Max 10', 'Easy', 'Mar — May'], price: '₹1,45,000', slug: 'japan' },
+  { title: 'Maldives — Turquoise Dreams', where: 'Malé · Resort Island', img: 'https://images.unsplash.com/photo-1514282401047-d79a71a590e8?w=800&q=80', details: ['4N/5D', 'Max 4', 'Easy', 'Nov — Apr'], price: '₹80,000', slug: 'maldives' }
 ];
 
 const pkgGrid = document.getElementById('pkgGrid');
 if (pkgGrid) {
   pkgGrid.innerHTML = featuredPackages.map(p => `
     <article class="pkg-card" onclick="window.location.hash='#/journeys/${p.slug}'" style="cursor:pointer;">
-      <div class="pkg-card-img" style="background-image: url('${p.img}')"></div>
+      <div class="pkg-card-img" style="background-image: url('${p.img}')" onerror="this.style.backgroundImage='url(https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=800&q=80)'"></div>
       <div class="pkg-card-body">
-        <div class="pkg-card-num">/ ${p.num}</div>
         <h3 class="pkg-card-title"><a href="#/journeys/${p.slug}" style="color:inherit; text-decoration:none;">${p.title}</a></h3>
         <div class="pkg-card-where">${p.where}</div>
         <div class="pkg-card-details">
@@ -1902,11 +1901,10 @@ document.addEventListener('DOMContentLoaded', setupReveal);
         });
       });
 
-      // Rebuild featuredPackages (pick first 6)
+      // Rebuild featuredPackages (show all active packages)
       featuredPackages.length = 0;
-      allJourneys.slice(0, 6).forEach((j, i) => {
+      allJourneys.forEach((j, i) => {
         featuredPackages.push({
-          num: String(i + 1).padStart(2, '0'),
           title: j.title,
           where: j.where,
           img: j.img,
@@ -1924,9 +1922,8 @@ document.addEventListener('DOMContentLoaded', setupReveal);
       if (pkgGrid) {
         pkgGrid.innerHTML = featuredPackages.map(p => `
           <article class="pkg-card" onclick="window.location.hash='#/journeys/${p.slug}'" style="cursor:pointer;">
-            <div class="pkg-card-img" style="background-image: url('${p.img}')"></div>
+            <div class="pkg-card-img" style="background-image: url('${p.img}')" onerror="this.style.backgroundImage='url(https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=800&q=80)'"></div>
             <div class="pkg-card-body">
-              <div class="pkg-card-num">/ ${p.num}</div>
               <h3 class="pkg-card-title"><a href="#/journeys/${p.slug}" style="color:inherit; text-decoration:none;">${p.title}</a></h3>
               <div class="pkg-card-where">${p.where}</div>
               <div class="pkg-card-details">

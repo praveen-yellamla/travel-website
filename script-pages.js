@@ -120,10 +120,11 @@
 
     pkgGrid.innerHTML = packages.map((p, i) => {
       const price = p.offer_price ? '₹' + Number(p.offer_price).toLocaleString('en-IN') : '₹' + Number(p.price).toLocaleString('en-IN');
+      const fallbackImg = 'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=800&q=80';
+      const imgSrc = (p.image_url && p.image_url.length > 10) ? p.image_url : fallbackImg;
       return '<article class="pkg-card">' +
-        '<div class="pkg-card-img" style="background-image: url(\'' + p.image_url + '\')"></div>' +
+        '<div class="pkg-card-img" style="background-image: url(\'' + imgSrc + '\')" onerror="this.style.backgroundImage=\"url(' + fallbackImg + ')\""></div>' +
         '<div class="pkg-card-body">' +
-          '<div class="pkg-card-num">/ ' + String(i + 1).padStart(2, '0') + '</div>' +
           '<h3 class="pkg-card-title"><a href="/journeys/' + p.slug + '" style="color:inherit;text-decoration:none;">' + (p.title || p.name) + '</a></h3>' +
           '<div class="pkg-card-where">' + (p.where || p.destination || '') + '</div>' +
           '<div class="pkg-card-details">' +
