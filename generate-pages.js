@@ -44,6 +44,7 @@ function headerHTML(activePage) {
           <img src="/assets/asv-tours-logo.png" alt="ASV TOURS" class="header-logo">
         </a>
         <nav class="header-nav" id="mainNav">
+          ${nav('Home', '/', 'home')}
           ${nav('Destinations', '/destinations', 'destinations')}
           ${nav('Packages', '/packages', 'packages')}
           ${nav('Why Us', '/why-us', 'why-us')}

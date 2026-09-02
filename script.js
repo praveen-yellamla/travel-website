@@ -1632,11 +1632,12 @@ if (searchBar) {
 // ── Destinations (India/International) ──
 let currentDestType = 'india';
 
+const _destFallback = 'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=800&q=80';
 let destinationsData = allJourneys.map(j => ({
   type: j.category,
   country: j.country,
   name: j.title,
-  img: j.img,
+  img: (j.img && j.img.length > 10) ? j.img : _destFallback,
   dur: j.duration,
   price: j.price,
   priceNum: j.priceNum,
@@ -1654,7 +1655,7 @@ function renderDestinations(type = 'india') {
 
   destGrid.innerHTML = filtered.map((d, i) => `
     <a class="dest-card ${i === 0 ? 'featured' : ''}" href="#/journeys/${d.slug}">
-      <div class="dest-card-img" style="background-image: url('${d.img}')"></div>
+      <div class="dest-card-img" style="background-image: url('${d.img}')" onerror="if(!this.dataset.fb){this.style.backgroundImage='url(https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=800&q=80)';this.dataset.fb=1}"></div>
       <div class="dest-card-overlay"></div>
       <span class="dest-card-price">from ${d.price}</span>
       <div class="dest-card-content">
@@ -1698,7 +1699,7 @@ const pkgGrid = document.getElementById('pkgGrid');
 if (pkgGrid) {
   pkgGrid.innerHTML = featuredPackages.map(p => `
     <article class="pkg-card" onclick="window.location.hash='#/journeys/${p.slug}'" style="cursor:pointer;">
-      <div class="pkg-card-img" style="background-image: url('${p.img}')" onerror="this.style.backgroundImage='url(https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=800&q=80)'"></div>
+      <div class="pkg-card-img" style="background-image: url('${p.img}')" onerror="if(!this.dataset.fb){this.style.backgroundImage='url(https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=800&q=80)';this.dataset.fb=1}"></div>
       <div class="pkg-card-body">
         <h3 class="pkg-card-title"><a href="#/journeys/${p.slug}" style="color:inherit; text-decoration:none;">${p.title}</a></h3>
         <div class="pkg-card-where">${p.where}</div>
@@ -1863,7 +1864,7 @@ document.addEventListener('DOMContentLoaded', setupReveal);
           title: p.title || p.name,
           country: p.country,
           where: p.where,
-          img: p.image_url,
+          img: (p.image_url && p.image_url.length > 10) ? p.image_url : _destFallback,
           duration: p.duration,
           durationNights: p.duration_nights,
           groupSize: p.group_size,
@@ -1892,7 +1893,7 @@ document.addEventListener('DOMContentLoaded', setupReveal);
           type: j.category,
           country: j.country,
           name: j.title,
-          img: j.img,
+          img: (j.img && j.img.length > 10) ? j.img : _destFallback,
           dur: j.duration,
           price: j.offerPrice ? '₹' + Number(j.offerPrice).toLocaleString('en-IN') : j.price,
           priceNum: j.offerPrice || j.priceNum,
@@ -1922,7 +1923,7 @@ document.addEventListener('DOMContentLoaded', setupReveal);
       if (pkgGrid) {
         pkgGrid.innerHTML = featuredPackages.map(p => `
           <article class="pkg-card" onclick="window.location.hash='#/journeys/${p.slug}'" style="cursor:pointer;">
-            <div class="pkg-card-img" style="background-image: url('${p.img}')" onerror="this.style.backgroundImage='url(https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=800&q=80)'"></div>
+            <div class="pkg-card-img" style="background-image: url('${p.img}')" onerror="if(!this.dataset.fb){this.style.backgroundImage='url(https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=800&q=80)';this.dataset.fb=1}"></div>
             <div class="pkg-card-body">
               <h3 class="pkg-card-title"><a href="#/journeys/${p.slug}" style="color:inherit; text-decoration:none;">${p.title}</a></h3>
               <div class="pkg-card-where">${p.where}</div>

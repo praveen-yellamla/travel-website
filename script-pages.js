@@ -7,6 +7,7 @@
   const page = document.currentScript?.getAttribute('data-page') || '';
 
   // ── Journey data (will be populated from API) ──
+  const _destFallback = 'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=800&q=80';
   let allJourneys = [];
 
   // ═══════ DESTINATIONS PAGE ═══════
@@ -36,7 +37,7 @@
           type: p.category,
           country: p.country || 'India',
           name: p.title || p.name,
-          img: p.image_url,
+          img: (p.image_url && p.image_url.length > 10) ? p.image_url : _destFallback,
           dur: p.duration,
           price: p.offer_price ? '₹' + Number(p.offer_price).toLocaleString('en-IN') : '₹' + Number(p.price).toLocaleString('en-IN'),
           priceNum: p.offer_price || p.price,
@@ -58,7 +59,7 @@
             type: d.category,
             country: d.country || 'India',
             name: d.name,
-            img: d.image_url,
+            img: (d.image_url && d.image_url.length > 10) ? d.image_url : _destFallback,
             dur: d.duration || '',
             price: '₹' + Number(d.price).toLocaleString('en-IN'),
             priceNum: d.price,
@@ -74,7 +75,7 @@
       filtered.sort((a, b) => a.priceNum - b.priceNum);
       destGrid.innerHTML = filtered.map((d, i) =>
         '<a class="dest-card ' + (i === 0 ? 'featured' : '') + '" href="/journeys/' + d.slug + '">' +
-          '<div class="dest-card-img" style="background-image: url(\'' + d.img + '\')"></div>' +
+          '<div class="dest-card-img" style="background-image: url(\'' + (d.img && d.img.length > 10 ? d.img : 'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=800&q=80') + '\')" onerror="if(!this.dataset.fb){this.style.backgroundImage=\"url(https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=800&q=80)\";this.dataset.fb=1}"></div>' +
           '<div class="dest-card-overlay"></div>' +
           '<span class="dest-card-price">from ' + d.price + '</span>' +
           '<div class="dest-card-content">' +
@@ -123,7 +124,7 @@
       const fallbackImg = 'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=800&q=80';
       const imgSrc = (p.image_url && p.image_url.length > 10) ? p.image_url : fallbackImg;
       return '<article class="pkg-card">' +
-        '<div class="pkg-card-img" style="background-image: url(\'' + imgSrc + '\')" onerror="this.style.backgroundImage=\"url(' + fallbackImg + ')\""></div>' +
+        '<div class="pkg-card-img" style="background-image: url(\'' + imgSrc + '\')" onerror="if(!this.dataset.fb){this.style.backgroundImage=\"url(' + fallbackImg + ')\";this.dataset.fb=1}"></div>' +
         '<div class="pkg-card-body">' +
           '<h3 class="pkg-card-title"><a href="/journeys/' + p.slug + '" style="color:inherit;text-decoration:none;">' + (p.title || p.name) + '</a></h3>' +
           '<div class="pkg-card-where">' + (p.where || p.destination || '') + '</div>' +
