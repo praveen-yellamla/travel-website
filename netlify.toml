@@ -1,5 +1,5 @@
 [build]
-  command = "mkdir -p pages && node generate-pages.js"
+  command = "node generate-pages.js"
   publish = "."
   functions = "netlify/functions"
 
