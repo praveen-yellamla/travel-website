@@ -129,15 +129,6 @@ ol, ul { list-style: none; }
   box-shadow: 0 1px 0 var(--c-border-light);
   position: relative;
 }
-.top-bar.scrolled .header {
-  background: rgba(247, 244, 238, .97);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  box-shadow: 0 1px 0 var(--c-border-light);
-}
-.top-bar.scrolled .header-nav a { color: var(--c-text-muted); }
-.top-bar.scrolled .header-brand-text { color: var(--c-text); }
-.top-bar.scrolled .menu-toggle span { background: var(--c-text); }
 .header-inner {
   display: flex;
   align-items: center;
@@ -719,42 +710,7 @@ ol, ul { list-style: none; }
 .top-bar.hidden {
   transform: translateY(-100%);
 }
-.offer-strip {
-  background: var(--c-dark);
-  color: rgba(255,255,255,.85);
-  padding: 10px 0;
-  font-size: 13px;
-  letter-spacing: .02em;
-}
-.offer-strip-inner {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 12px;
-  flex-wrap: wrap;
-  text-align: center;
-}
-.offer-strip-text {
-  color: rgba(255,255,255,.75);
-}
-.offer-strip-text strong {
-  color: var(--c-accent-light);
-  font-weight: 700;
-  font-size: 15px;
-}
-.offer-sep {
-  color: var(--c-accent);
-  font-size: 8px;
-}
-.offer-strip-link {
-  color: var(--c-accent-light);
-  font-weight: 600;
-  text-decoration: none;
-  transition: color .2s;
-}
-.offer-strip-link:hover {
-  color: #fff;
-}
+
 
 /* Hero price badge moved to 3D visual */
 

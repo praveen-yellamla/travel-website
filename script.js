@@ -1571,14 +1571,6 @@ function renderEnquiryPage(preselectedDest) {
 // MAIN SITE LOGIC
 // ═══════════════════════════════════════════════════════════════════════════
 
-// ── Header scroll effect (no hide, just visual) ──
-const topBar = document.getElementById('topBar');
-if (topBar) {
-  window.addEventListener('scroll', () => {
-    const scrolled = window.scrollY > 60;
-    topBar.classList.toggle('scrolled', scrolled);
-  }, { passive: true });
-}
 
 // ── Smooth scroll for nav links ──
 document.querySelectorAll('a[href^="#"]').forEach(link => {
@@ -1955,13 +1947,6 @@ document.addEventListener('DOMContentLoaded', setupReveal);
     // ── Fetch settings for offer strip ──
     const settings = await fetch('/api/settings').then(r => r.ok ? r.json() : null);
     if (settings) {
-      const offerText = settings.offer_text;
-      if (offerText) {
-        const offerEl = document.querySelector('.offer-strip-text strong');
-        if (offerEl) offerEl.textContent = offerText.replace(/.*Starting From\s*/i, '').trim();
-        const offerFull = document.querySelector('.offer-strip-text');
-        if (offerFull) offerFull.innerHTML = '✈ ' + offerText + ' <strong></strong>';
-      }
       const minPrice = settings.min_price;
       if (minPrice) {
         const hvPrice = document.querySelector('.hv-price-value');

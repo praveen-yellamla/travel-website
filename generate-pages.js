@@ -29,15 +29,6 @@ function headerHTML(activePage) {
 
   return `
   <div class="top-bar" id="topBar">
-    <div class="offer-strip">
-      <div class="container offer-strip-inner">
-        <span class="offer-strip-text">✈ India Getaways Starting From <strong>₹6,000</strong></span>
-        <span class="offer-sep">•</span>
-        <span class="offer-strip-text">Hotel + Travel + Sightseeing Included</span>
-        <span class="offer-sep">•</span>
-        <a href="/packages" class="offer-strip-link">Explore Packages →</a>
-      </div>
-    </div>
     <header class="header" id="header">
       <div class="container header-inner">
         <a href="/" class="header-brand">
